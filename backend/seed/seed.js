@@ -90,6 +90,8 @@ const seed = async () => {
       issue: "Inverter showing error light",
       status: "assigned",
       assignedTo: tech._id,
+      underWarranty: true, // installed 12 days ago, well inside warranty
+      billAmount: 0,
     });
 
     console.log("✅ Seed complete");

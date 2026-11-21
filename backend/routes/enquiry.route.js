@@ -6,6 +6,7 @@ const {
   getEnquiries,
   getTodayFollowUps,
   updateEnquiry,
+  updateSurvey,
   convertEnquiry,
 } = require("../controllers/enquiry.controller");
 
@@ -16,6 +17,7 @@ router.post("/", auth, isCustomerCare, createEnquiry);
 router.get("/", auth, isCustomerCare, getEnquiries);
 router.get("/follow-ups", auth, isCustomerCare, getTodayFollowUps);
 router.put("/:id", auth, isCustomerCare, updateEnquiry);
+router.patch("/:id/survey", auth, isCustomerCare, updateSurvey);
 router.post("/:id/convert", auth, isCustomerCare, convertEnquiry);
 
 module.exports = router;

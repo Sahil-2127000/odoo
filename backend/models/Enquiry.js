@@ -13,6 +13,12 @@ const enquirySchema = new mongoose.Schema(
     },
     note: { type: String },        // latest remark
     nextFollowUp: { type: Date },  // when to call again
+    surveyStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected"], // technician's site survey
+      default: "pending",
+    },
+    surveyNotes: { type: String }, // roof direction, tilt, cable length etc.
   },
   { timestamps: true }
 );

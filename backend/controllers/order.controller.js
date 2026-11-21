@@ -177,6 +177,18 @@ exports.updateOrderStatus = async (req, res) => {
       }
     }
 
+    // when dispatched, save the serial numbers scanned for this order
+    if (status === "dispatched") {
+      const { serials } = req.body;
+      if (!Array.isArray(serials) || serials.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Scan at least one serial number to dispatch",
+        });
+      }
+      order.serials = serials;
+    }
+
     // when installed, warranty starts today
     if (status === "installed") {
       order.installedAt = new Date();
