@@ -1,0 +1,43 @@
+export const mockCustomers = [
+  {
+    id: 'cust_001',
+    leadId: 'lead_005',
+    name: 'Sanjay Aggarwal',
+    phone: '+91 98100 23456',
+    email: 'sanjay.aggarwal@gmail.com',
+    city: 'Delhi',
+    address: 'D-402, Shalimar Bagh, New Delhi',
+    monthlyBill: 4600,
+    notes: 'Converted from Lead #005. Customer is keen on subsidy portal registration.',
+    createdAt: '2026-11-16T14:30:00.000Z',
+    updatedAt: '2026-11-16T14:30:00.000Z',
+  },
+  {
+    id: 'cust_002',
+    leadId: null,
+    name: 'Vikas Singhal',
+    phone: '+91 98290 88776',
+    email: 'vikas.singhal@jaipurtextiles.com',
+    city: 'Jaipur',
+    address: 'Plot 18, Sitapura Industrial Area, Jaipur',
+    monthlyBill: 16500,
+    notes: 'Direct commercial client for small textile unit. Requires 5kW On-Grid.',
+    createdAt: '2026-11-12T10:00:00.000Z',
+    updatedAt: '2026-11-12T10:00:00.000Z',
+  },
+  {
+    id: 'cust_003',
+    leadId: null,
+    name: 'Pooja Deshmukh',
+    phone: '+91 99220 54321',
+    email: 'pooja.deshmukh@gmail.com',
+    city: 'Pune',
+    address: 'Bungalow 7, Sindh Society, Aundh, Pune',
+    monthlyBill: 5200,
+    notes: 'Independent bungalow roof. Interested in 3kW On-Grid system.',
+    createdAt: '2026-11-10T11:20:00.000Z',
+    updatedAt: '2026-11-10T11:20:00.000Z',
+  },
+];
+
+export default mockCustomers;
