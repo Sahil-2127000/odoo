@@ -38,7 +38,7 @@ app.use("/api/v1/auth", userRoutes);
 app.use("/api/v1/enquiries", enquiryRoutes);
 app.use("/api/v1/customers", customerRoutes);
 app.use("/api/v1/products",productRoutes);
-app.use("api/v1/kits",kitRoutes);
+app.use("/api/v1/kits", kitRoutes);
 app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/tickets", ticketRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);

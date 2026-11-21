@@ -120,6 +120,49 @@ exports.updateEnquiry = async (req, res) => {
   }
 };
 
+// PATCH /api/v1/enquiries/:id/survey   body: { surveyStatus, surveyNotes }
+exports.updateSurvey = async (req, res) => {
+  try {
+    const { surveyStatus, surveyNotes } = req.body;
+
+    if (!["pending", "approved", "rejected"].includes(surveyStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "surveyStatus must be pending, approved or rejected",
+      });
+    }
+
+    const enquiry = await Enquiry.findById(req.params.id);
+    if (!enquiry) {
+      return res.status(404).json({
+        success: false,
+        message: "Enquiry not found",
+      });
+    }
+
+    enquiry.surveyStatus = surveyStatus;
+    if (surveyNotes !== undefined) enquiry.surveyNotes = surveyNotes;
+
+    // survey rejected -> lead lost, same as the paper flow
+    if (surveyStatus === "rejected") enquiry.status = "lost";
+
+    await enquiry.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Survey updated",
+      data: enquiry,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Could not update survey",
+      error: error.message,
+    });
+  }
+};
+
 // POST /api/v1/enquiries/:id/convert   (enquiry -> customer)
 exports.convertEnquiry = async (req, res) => {
   try {
@@ -136,6 +179,13 @@ exports.convertEnquiry = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Enquiry is already converted",
+      });
+    }
+
+    if (enquiry.surveyStatus !== "approved") {
+      return res.status(400).json({
+        success: false,
+        message: "Site survey must be approved before converting to a customer",
       });
     }
 

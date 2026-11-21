@@ -8,10 +8,12 @@ const ticketSchema = new mongoose.Schema(
     issue: { type: String, required: true },
     status: {
       type: String,
-      enum: ["open", "assigned", "resolved"],
+      enum: ["open", "assigned", "resolved", "confirmed"],
       default: "open",
     },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // technician
+    underWarranty: { type: Boolean, default: false }, // checked automatically at creation
+    billAmount: { type: Number, default: 0 },          // 0 if under warranty, flat charge otherwise
   },
   { timestamps: true }
 );
