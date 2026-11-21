@@ -9,7 +9,7 @@ export default function Faq() {
       <div className="mx-auto grid max-w-6xl gap-12 px-4 sm:px-6 lg:grid-cols-[1fr_1.4fr]">
         <Reveal>
           <p className="text-sm font-semibold text-primary-600">FAQ</p>
-          <h2 className="mt-2 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Questions people ask</h2>
+          <h2 className="mt-2 font-display text-5xl leading-[0.9] font-extrabold uppercase sm:text-7xl">Questions people ask</h2>
           <p className="mt-4 max-w-sm text-slate-600">Still not sure? Send an enquiry below and we will call you.</p>
         </Reveal>
 

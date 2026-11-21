@@ -80,13 +80,6 @@ export default function TrackOrder() {
     }
   }
 
-  // Pre-fill demo order SC-1042 for easy testing
-  const fillDemoOrder = () => {
-    setPhone('9876543210')
-    setOrderId('SC-1042')
-    setError('')
-  }
-
   // Clear lookup
   const handleClearLookup = () => {
     setOrder(null)
@@ -249,26 +242,6 @@ export default function TrackOrder() {
                   Track Order Progress
                 </Button>
               </form>
-
-              {/* Demo Helper Box for Judges */}
-              <div className="mt-6 rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-3.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Hackathon Demo Shortcut
-                  </span>
-                  <button
-                    type="button"
-                    onClick={fillDemoOrder}
-                    className="cursor-pointer text-xs font-bold text-primary-600 hover:text-primary-700 hover:underline"
-                  >
-                    Auto-Fill Demo Order
-                  </button>
-                </div>
-                <p className="mt-1 text-xs text-slate-500">
-                  Phone: <code className="font-mono font-semibold text-slate-700">9876543210</code> · Order ID:{' '}
-                  <code className="font-mono font-semibold text-slate-700">SC-1042</code> (Homeowner R. Sharma)
-                </p>
-              </div>
             </div>
           </div>
         )}

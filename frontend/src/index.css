@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;800&family=Instrument+Serif:ital@0;1&display=swap');
 @import 'tailwindcss';
 
 /*
@@ -7,8 +7,21 @@
  */
 @theme {
   --font-sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
-  /* Bold headline font for the landing page: use class "font-display" */
-  --font-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  /* Tall condensed headline font: class "font-display" */
+  --font-display: 'Big Shoulders Display', Impact, 'Arial Narrow', sans-serif;
+  /* Italic serif for one accent line in a headline: class "font-serif italic" */
+  --font-serif: 'Instrument Serif', Georgia, serif;
+
+  /* Endless sideways scroll for the numbers strip under the hero: class "animate-marquee" */
+  --animate-marquee: marquee 40s linear infinite;
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
 
   /* Primary: solar amber/orange */
   --color-primary-50: #fff7ed;

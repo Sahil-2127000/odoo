@@ -32,7 +32,7 @@ export default function Packages({ onSelect }) {
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
             <p className="text-sm font-semibold text-primary-600">Packages</p>
-            <h2 className="mt-2 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Pick your system size</h2>
+            <h2 className="mt-2 font-display text-5xl leading-[0.9] font-extrabold uppercase sm:text-7xl">Pick your system size</h2>
             <p className="mt-3 max-w-lg text-slate-600">
               Ready-made kits with every part included. On-Grid prices are shown after the government subsidy.
             </p>
@@ -87,7 +87,7 @@ function KitCard({ kit, onSelect }) {
         </span>
       )}
 
-      <p className="font-display text-5xl font-extrabold text-slate-900">
+      <p className="font-display text-7xl font-extrabold text-slate-900">
         {kit.capacityKw}
         <span className="ml-1 text-xl text-slate-400">kW</span>
       </p>

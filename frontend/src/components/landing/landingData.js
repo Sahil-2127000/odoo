@@ -9,12 +9,14 @@ export const NAV_LINKS = [
   { label: 'Get a quote', href: '/#enquiry' },
 ]
 
-// Numbers shown at the bottom of the hero.
-export const HERO_STATS = [
+// Numbers in the scrolling strip at the bottom of the hero.
+export const TICKER = [
   { value: '500+', label: 'rooftops installed' },
-  { value: '20 yrs', label: 'panel warranty' },
+  { value: '20 years', label: 'panel warranty' },
   { value: '₹78,000', label: 'max govt. subsidy' },
   { value: '1–5 kW', label: 'ready-made systems' },
+  { value: 'On-Grid & Off-Grid', label: 'with battery backup' },
+  { value: 'Every serial', label: 'scanned before dispatch' },
 ]
 
 // "How it works" steps: Enquiry -> Survey -> Install -> Warranty.

@@ -65,8 +65,8 @@ export default function EnquiryForm({ form, setForm }) {
         {/* Left side: text */}
         <div>
           <p className="text-sm font-semibold text-amber-300">Free quote</p>
-          <h2 className="mt-2 font-display text-4xl font-extrabold tracking-tight text-white sm:text-6xl">
-            Get your free <span className="text-amber-300">solar quote.</span>
+          <h2 className="mt-2 font-display text-5xl leading-[0.9] font-extrabold text-white uppercase sm:text-7xl">
+            Get your free <span className="font-serif font-normal text-amber-300 normal-case italic">solar quote.</span>
           </h2>
           <p className="mt-6 max-w-md text-lg text-slate-300">
             Tell us a little about your home. Our team will call you within one working day to check
@@ -84,7 +84,7 @@ export default function EnquiryForm({ form, setForm }) {
           {referenceNumber ? (
             <div className="py-8 text-center">
               <CheckCircle2 className="mx-auto h-14 w-14 text-success-500" />
-              <h3 className="mt-4 font-display text-2xl font-bold">Thank you! We got your enquiry.</h3>
+              <h3 className="mt-4 font-display text-4xl font-extrabold uppercase">Thank you! We got your enquiry.</h3>
               <p className="mt-2 text-slate-600">
                 We will call {form.name} on {form.phone} about a {form.capacityKw} kW{' '}
                 {form.systemType === 'on_grid' ? 'On-Grid' : 'Off-Grid'} system. Please keep this reference number:

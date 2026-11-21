@@ -25,43 +25,43 @@ export default function Navbar() {
   const barStyle = transparent
     ? 'bg-transparent text-white'
     : 'bg-white/95 text-slate-900 border-b border-slate-200 backdrop-blur'
+  const boxStyle = transparent
+    ? 'border-white/60 hover:bg-white hover:text-slate-900'
+    : 'border-slate-900 hover:bg-slate-900 hover:text-white'
+
+  const staffLink = isAuthenticated ? homePath : '/login'
+  const staffText = isAuthenticated ? 'Dashboard' : 'Staff login'
 
   return (
-    <header className={`${onHome ? 'fixed' : 'sticky'} inset-x-0 top-0 z-50 transition-colors ${barStyle}`}>
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+    <header className={`${onHome ? 'fixed' : 'sticky'} inset-x-0 top-0 z-50 transition-colors duration-300 ${barStyle}`}>
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-6 px-5 sm:px-8">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 font-display text-xl font-extrabold">
-          <Sun className="h-6 w-6 text-primary-500" />
-          SunPower
+        <Link to="/" className="flex items-center gap-2 font-display text-3xl font-extrabold uppercase">
+          <Sun className="h-6 w-6 text-amber-400" />
+          SolarConnect
         </Link>
 
         {/* Desktop links */}
-        <nav className="hidden items-center gap-8 text-sm font-medium lg:flex">
+        <nav className="hidden items-center gap-9 text-[15px] font-semibold lg:flex">
           {NAV_LINKS.map((link) => (
-            <a key={link.href} href={link.href} className="hover:text-primary-500">
+            <a key={link.href} href={link.href} className="hover:text-amber-400">
               {link.label}
             </a>
           ))}
-          <Link to="/track" className={pathname === '/track' ? 'text-primary-500' : 'hover:text-primary-500'}>
+          <Link to="/track" className={pathname === '/track' ? 'text-amber-500' : 'hover:text-amber-400'}>
             Track my order
           </Link>
         </nav>
 
-        {/* Right side buttons */}
-        <div className="flex items-center gap-2">
-          <Link
-            to={isAuthenticated ? homePath : '/login'}
-            className="hidden h-10 items-center bg-primary-500 px-4 text-sm font-semibold text-white hover:bg-primary-600 sm:flex"
-          >
-            {isAuthenticated ? 'Open dashboard' : 'Staff login'}
+        {/* Right side */}
+        <div className="flex items-center gap-5">
+          <Link to={staffLink} className="hidden text-[15px] font-semibold hover:text-amber-400 sm:block">
+            {staffText}
           </Link>
-
-          <button
-            type="button"
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="p-2 lg:hidden"
-            aria-label="Open menu"
-          >
+          <a href="/#enquiry" className={`hidden h-12 items-center gap-3 border px-5 text-[15px] font-semibold transition-colors sm:flex ${boxStyle}`}>
+            Get a quote <span>→</span>
+          </a>
+          <button type="button" onClick={() => setMenuOpen(!menuOpen)} className="p-2 lg:hidden" aria-label="Open menu">
             {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
@@ -69,25 +69,26 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <nav className="border-t border-slate-200 bg-white px-4 pb-6 lg:hidden">
+        <nav className="border-t border-slate-200 bg-white px-5 pb-6 lg:hidden">
           {NAV_LINKS.map((link) => (
             <a
               key={link.href}
               href={link.href}
               onClick={() => setMenuOpen(false)}
-              className="block border-b border-slate-100 py-4 text-lg font-semibold"
+              className="block border-b border-slate-100 py-4 font-display text-3xl font-extrabold uppercase"
             >
               {link.label}
             </a>
           ))}
-          <Link to="/track" onClick={() => setMenuOpen(false)} className="block border-b border-slate-100 py-4 text-lg font-semibold">
+          <Link
+            to="/track"
+            onClick={() => setMenuOpen(false)}
+            className="block border-b border-slate-100 py-4 font-display text-3xl font-extrabold uppercase"
+          >
             Track my order
           </Link>
-          <Link
-            to={isAuthenticated ? homePath : '/login'}
-            className="mt-6 flex h-12 items-center justify-center bg-primary-500 font-semibold text-white"
-          >
-            {isAuthenticated ? 'Open dashboard' : 'Staff login'}
+          <Link to={staffLink} className="mt-6 flex h-12 items-center justify-center bg-amber-400 font-semibold text-slate-950">
+            {staffText}
           </Link>
         </nav>
       )}

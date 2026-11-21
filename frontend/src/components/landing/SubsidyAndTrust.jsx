@@ -10,7 +10,7 @@ export default function SubsidyAndTrust() {
         {/* Subsidy note */}
         <Reveal>
           <p className="text-sm font-semibold text-primary-600">Government subsidy</p>
-          <h2 className="mt-2 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Up to ₹78,000 back</h2>
+          <h2 className="mt-2 font-display text-5xl leading-[0.9] font-extrabold uppercase sm:text-7xl">Up to ₹78,000 back</h2>
           <p className="mt-4 text-slate-600">
             Under the PM Surya Ghar scheme, the subsidy is paid straight into your bank account for
             on-grid home systems. We fill in the forms and follow up for you.
@@ -37,7 +37,7 @@ export default function SubsidyAndTrust() {
 
         {/* Trust points */}
         <Reveal delay={0.15} className="bg-slate-950 p-8 text-white sm:p-10">
-          <h3 className="font-display text-2xl font-bold text-white">Why homeowners choose us</h3>
+          <h3 className="font-display text-4xl font-extrabold text-white uppercase">Why homeowners choose us</h3>
           <ul className="mt-8 space-y-6">
             {TRUST_POINTS.map((point) => (
               <li key={point.title} className="flex gap-4">

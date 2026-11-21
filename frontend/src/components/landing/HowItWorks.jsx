@@ -9,7 +9,7 @@ export default function HowItWorks() {
         <Reveal className="flex flex-wrap items-end justify-between gap-6">
           <div>
             <p className="text-sm font-semibold text-primary-600">How it works</p>
-            <h2 className="mt-2 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">From enquiry to warranty</h2>
+            <h2 className="mt-2 font-display text-5xl leading-[0.9] font-extrabold uppercase sm:text-7xl">From enquiry to warranty</h2>
           </div>
           <p className="max-w-sm text-slate-600">
             Four simple steps. You always know what happens next, and you never have to chase anyone.
@@ -21,7 +21,7 @@ export default function HowItWorks() {
           {STEPS.map((step, index) => (
             <li key={step.title} className="border-b border-slate-900/10 py-8 sm:pr-8 lg:border-b-0">
               <Reveal delay={index * 0.1}>
-                <span className="font-display text-6xl font-extrabold text-primary-300">0{index + 1}</span>
+                <span className="font-display text-7xl font-extrabold text-amber-500">0{index + 1}</span>
                 <h3 className="mt-4 text-xl font-bold">{step.title}</h3>
                 <p className="mt-2 text-slate-600">{step.text}</p>
               </Reveal>

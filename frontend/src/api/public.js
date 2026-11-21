@@ -29,7 +29,7 @@ export async function submitEnquiry(payload) {
     
     // Save to localStorage so other dashboards (Sales) can see it if needed
     try {
-      const existing = JSON.parse(localStorage.getItem('sunpower_mock_leads') || '[]')
+      const existing = JSON.parse(localStorage.getItem('solarconnect_mock_leads') || '[]')
       existing.unshift({
         id: crypto.randomUUID(),
         refNumber,
@@ -37,7 +37,7 @@ export async function submitEnquiry(payload) {
         status: 'new',
         createdAt: new Date().toISOString(),
       })
-      localStorage.setItem('sunpower_mock_leads', JSON.stringify(existing))
+      localStorage.setItem('solarconnect_mock_leads', JSON.stringify(existing))
     } catch {
       // ignore
     }

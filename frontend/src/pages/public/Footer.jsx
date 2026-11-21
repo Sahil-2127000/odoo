@@ -9,9 +9,9 @@ export default function Footer() {
       <div className="mx-auto grid max-w-6xl gap-12 px-4 py-16 sm:px-6 md:grid-cols-3">
         {/* About */}
         <div>
-          <p className="flex items-center gap-2 text-lg font-bold text-white">
-            <Sun className="h-6 w-6 text-primary-500" />
-            SunPower Solutions
+          <p className="flex items-center gap-2 font-display text-3xl font-extrabold text-white uppercase">
+            <Sun className="h-6 w-6 text-amber-400" />
+            SolarConnect
           </p>
           <p className="mt-4 text-sm leading-relaxed">
             Rooftop solar for homes and small factories. From the first enquiry to the 20-year warranty.
@@ -37,7 +37,7 @@ export default function Footer() {
           <h4 className="text-sm font-semibold text-white">Contact us</h4>
           <ul className="mt-4 space-y-3 text-sm">
             <li className="flex gap-2"><Phone className="h-4 w-4 shrink-0 text-primary-500" /> +91 98765 43210</li>
-            <li className="flex gap-2"><Mail className="h-4 w-4 shrink-0 text-primary-500" /> hello@sunpower.example</li>
+            <li className="flex gap-2"><Mail className="h-4 w-4 shrink-0 text-primary-500" /> hello@solarconnect.example</li>
             <li className="flex gap-2"><MapPin className="h-4 w-4 shrink-0 text-primary-500" /> Solar Tech Park, New Delhi</li>
           </ul>
           <p className="mt-4 text-xs">Mon to Sat, 9 am – 7 pm</p>
@@ -45,7 +45,7 @@ export default function Footer() {
       </div>
 
       <div className="border-t border-white/10 py-6 text-center text-xs text-slate-500">
-        © {new Date().getFullYear()} SunPower Solutions · Track your order at /track with your phone number and order ID.
+        © {new Date().getFullYear()} SolarConnect · Track your order at /track with your phone number and order ID.
       </div>
     </footer>
   )
