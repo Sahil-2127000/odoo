@@ -68,7 +68,7 @@ const inStockCounts = {
 // status: scheduled | in_progress | completed | cancelled
 const installationPlan = [
   { order: 'ord_001', status: 'completed', at: 915, technicians: ['tec_001', 'tec_002'] },
-  { order: 'ord_002', status: 'completed', at: 545, technicians: ['tec_002', 'tec_004', 'tec_007'] },
+  { order: 'ord_002', status: 'completed', at: 560, technicians: ['tec_002', 'tec_004', 'tec_007'] },
   { order: 'ord_003', status: 'scheduled', at: -2, technicians: ['tec_003', 'tec_008'] },
   { order: 'ord_004', status: 'in_progress', at: 0, technicians: ['tec_001', 'tec_002', 'tec_007'] },
 ]

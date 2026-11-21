@@ -48,3 +48,13 @@ Refs (`product`, `customer`, `order`, `technicians`, `assignedTechnician`, ...) 
 | Tickets | `GET /tickets?status&priority&type&assignedTechnician&q`, `GET /tickets/:id`, `POST /tickets`, `PUT /tickets/:id`, `PATCH /tickets/:id/assign {assignedTechnician}`, `PATCH /tickets/:id/status {status, resolutionNotes}` |
 
 Mock behaviour for each call lives in `frontend/src/api/operations/*.js` (the `USE_MOCK` branch) and is a working reference for the backend logic.
+
+## Status vs. the backend on main (checked 21 Nov)
+
+| Area | Backend today | Operations frontend |
+|---|---|---|
+| Products | `Product` model + `product.route.js` exist, but the route is **not mounted** in `index.js`. Fields: `sellPrice, stock, minStock, warrantyYears`, category `panel / inverter / battery / other`, no SKU/brand. | `api/operations/products.js` has an adapter (`fromApiProduct` / `toApiProduct`) for these fields. Flip `USE_MOCK` once `/api/v1/products` is mounted. Create/edit are admin-only on the backend. |
+| Serial numbers | **No model or API.** | Needed for stock-in, serial lookup, reservation and warranties. Still on mocks. |
+| Technicians | Users with role `technician`; listing is admin-only (`GET /auth/users?role=technician`); no availability field. | Needs a warehouse-readable list and an `available / on_job / leave` status. Still on mocks. |
+| Tickets | `Ticket { code, customer, serialNo, issue, status: open/in_progress/resolved, assignedTo }` | Frontend also uses type, priority and resolution notes (Phase 2). |
+| Orders | `status: quoted → confirmed → packed → dispatched → delivered → installed`, items `{ product, qty, price }` | Frontend mocks use `confirmed → reserved → installation_scheduled → installed`; align in Phase 2. |

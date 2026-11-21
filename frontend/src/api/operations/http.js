@@ -1,33 +1,16 @@
-// Thin fetch wrapper for the real Express API.
-// Every response is { success, data, message }; callers get `data` or an Error.
-// TODO: switch to the shared client from Dev 2 (src/api/client.js) once it lands.
+// Real-API helper for the Operations module.
+// Uses the team's single shared Axios instance (src/api/axios.js), which adds the login token,
+// unwraps { success, data, message } to `data`, and turns failures into an Error with the message.
+import api from '../axios'
 
-// Backend (feature-sahil) listens on PORT 4000 with routes under /api/v1 and uses cookie auth.
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api/v1'
+export async function http(method, path, body) {
+  return api.request({ method, url: path, data: body })
+}
 
+// Mock calls return the same envelope; this unwraps it the same way the Axios interceptor does.
 export const unwrap = (res) => {
   if (!res?.success) throw new Error(res?.message || 'Request failed')
   return res.data
-}
-
-export async function http(method, path, body) {
-  const token = localStorage.getItem('token')
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    credentials: 'include', // send the auth cookie
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
-  let json
-  try {
-    json = await res.json()
-  } catch {
-    json = { success: false, message: `HTTP ${res.status}` }
-  }
-  return unwrap(json)
 }
 
 export const toQuery = (params = {}) => {

@@ -67,8 +67,8 @@ const withTotal = (o) => ({
 export const orders = [
   // Installed ~30 months ago: inverter warranty expired, panels still active.
   { _id: 'ord_001', orderNumber: 'SO-2024-0012', customer: 'cus_001', systemType: 'on_grid', systemSizeKw: 3, status: 'installed', items: onGrid3kW(), createdAt: daysAgo(930) },
-  // Installed ~18 months ago: the "rainy season breakdown" customer.
-  { _id: 'ord_002', orderNumber: 'SO-2025-0047', customer: 'cus_002', systemType: 'on_grid', systemSizeKw: 5, status: 'installed', items: onGrid5kW(), createdAt: daysAgo(560) },
+  // Installed ~18 months ago: the "rainy season breakdown" customer. Inverter warranty (24 mo) expires in ~170 days.
+  { _id: 'ord_002', orderNumber: 'SO-2025-0047', customer: 'cus_002', systemType: 'on_grid', systemSizeKw: 5, status: 'installed', items: onGrid5kW(), createdAt: daysAgo(575) },
   // Reserved, installation scheduled in 2 days.
   { _id: 'ord_003', orderNumber: 'SO-2026-0101', customer: 'cus_003', systemType: 'off_grid', systemSizeKw: 3, status: 'installation_scheduled', items: offGrid3kW(), createdAt: daysAgo(12) },
   // Reserved, installation in progress today.
