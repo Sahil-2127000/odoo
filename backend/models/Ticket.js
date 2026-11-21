@@ -4,11 +4,11 @@ const ticketSchema = new mongoose.Schema(
   {
     code: { type: String, required: true, unique: true }, // TK-1001
     customer: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", required: true },
-    serialNo: { type: String },  // which panel/inverter has the problem
+    order: { type: mongoose.Schema.Types.ObjectId, ref: "Order", required: true },
     issue: { type: String, required: true },
     status: {
       type: String,
-      enum: ["open", "in_progress", "resolved"],
+      enum: ["open", "assigned", "resolved"],
       default: "open",
     },
     assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // technician
