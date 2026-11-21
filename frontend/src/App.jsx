@@ -1,15 +1,49 @@
-// Temporary app shell so the Operations module runs on its own.
-// Dev 2 will replace this with the real router (login, role guards, /admin, /sales, /operations).
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
-import OpsDevLayout from './pages/operations/components/OpsDevLayout'
-import { operationsRoutes } from './routes/operationsRoutes'
-
-const router = createBrowserRouter([
-  { path: '/', element: <Navigate to="/operations" replace /> },
-  { path: '/operations', element: <OpsDevLayout />, children: operationsRoutes },
-  { path: '*', element: <Navigate to="/operations" replace /> },
-])
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { AuthProvider } from '@/context/AuthContext'
+import DashboardLayout from '@/components/layout/DashboardLayout'
+import ProtectedRoute from '@/routes/ProtectedRoute'
+import adminRoutes from '@/routes/adminRoutes'
+import salesRoutes from '@/routes/salesRoutes'
+import operationsRoutes from '@/routes/operationsRoutes'
+import Login from '@/pages/auth/Login'
+import LandingPage from '@/pages/public/LandingPage'
+import TrackOrder from '@/pages/public/TrackOrder'
+import NotFound from '@/pages/common/NotFound'
+import { ROLES } from '@/constants/status'
 
 export default function App() {
-  return <RouterProvider router={router} />
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          {/* Public customer-facing routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/track" element={<TrackOrder />} />
+          <Route path="/login" element={<Login />} />
+
+          {/* Internal Staff Portals */}
+          <Route element={<ProtectedRoute roles={[ROLES.ADMIN]} />}>
+            <Route path="/admin" element={<DashboardLayout />}>
+              {adminRoutes}
+            </Route>
+          </Route>
+
+          <Route element={<ProtectedRoute roles={[ROLES.SALES]} />}>
+            <Route path="/sales" element={<DashboardLayout />}>
+              {salesRoutes}
+            </Route>
+          </Route>
+
+          <Route element={<ProtectedRoute roles={[ROLES.OPERATIONS]} />}>
+            <Route path="/operations" element={<DashboardLayout />}>
+              {operationsRoutes}
+            </Route>
+          </Route>
+
+          {/* 404 Fallback */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  )
 }
