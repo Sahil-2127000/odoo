@@ -2,6 +2,9 @@ const Ticket = require("../models/Ticket");
 const Order = require("../models/Order");
 const User = require("../models/User");
 const generateCode = require("../util/generateCode.util");
+const { isUnderWarranty } = require("../util/warranty.util");
+
+const OUT_OF_WARRANTY_CHARGE = 500; // flat parts + labour charge
 
 // POST /api/v1/tickets/public   body: { phone, orderCode, issue }   (no login)
 exports.createTicket = async (req, res) => {
@@ -15,7 +18,9 @@ exports.createTicket = async (req, res) => {
       });
     }
 
-    const order = await Order.findOne({ code: orderCode.toUpperCase() }).populate("customer");
+    const order = await Order.findOne({ code: orderCode.toUpperCase() })
+      .populate("customer")
+      .populate("items.product", "warrantyYears");
 
     // order must exist AND belong to this phone number
     if (!order || order.customer.phone !== phone) {
@@ -32,11 +37,16 @@ exports.createTicket = async (req, res) => {
       });
     }
 
+    // check warranty automatically so the bill amount is decided up front
+    const underWarranty = isUnderWarranty(order);
+
     const ticket = await Ticket.create({
       code: await generateCode(Ticket, "TK"),
       customer: order.customer._id,
       order: order._id,
       issue,
+      underWarranty,
+      billAmount: underWarranty ? 0 : OUT_OF_WARRANTY_CHARGE,
     });
 
     return res.status(201).json({
@@ -132,6 +142,53 @@ exports.updateTicket = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Could not update ticket",
+      error: error.message,
+    });
+  }
+};
+
+// POST /api/v1/tickets/confirm   body: { phone, code }   (public, no login)
+// customer confirms the repair actually works, closing the ticket
+exports.confirmTicket = async (req, res) => {
+  try {
+    const { phone, code } = req.body;
+
+    if (!phone || !code) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone and ticket code are required",
+      });
+    }
+
+    const ticket = await Ticket.findOne({ code: code.toUpperCase() }).populate("customer");
+
+    if (!ticket || ticket.customer.phone !== phone) {
+      return res.status(404).json({
+        success: false,
+        message: "No ticket found for this phone and ticket code",
+      });
+    }
+
+    if (ticket.status !== "resolved") {
+      return res.status(400).json({
+        success: false,
+        message: "Ticket can be confirmed only after it is resolved",
+      });
+    }
+
+    ticket.status = "confirmed";
+    await ticket.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Thanks for confirming, your ticket is now closed",
+      data: ticket,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Could not confirm ticket",
       error: error.message,
     });
   }
