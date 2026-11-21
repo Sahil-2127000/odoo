@@ -35,7 +35,7 @@ Product catalog for the seed script: [`product-catalog.json`](product-catalog.js
 
 Refs (`product`, `customer`, `order`, `technicians`, `assignedTechnician`, ...) are expected **populated** in GET responses.
 
-## Endpoints the frontend calls (base `VITE_API_URL`, default `http://localhost:5000/api`)
+## Endpoints the frontend calls (base `VITE_API_URL`, default `http://localhost:4000/api/v1`, cookie auth with credentials)
 
 | Module | Calls |
 |---|---|

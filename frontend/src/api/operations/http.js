@@ -2,7 +2,8 @@
 // Every response is { success, data, message }; callers get `data` or an Error.
 // TODO: switch to the shared client from Dev 2 (src/api/client.js) once it lands.
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5000/api'
+// Backend (feature-sahil) listens on PORT 4000 with routes under /api/v1 and uses cookie auth.
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api/v1'
 
 export const unwrap = (res) => {
   if (!res?.success) throw new Error(res?.message || 'Request failed')
@@ -13,6 +14,7 @@ export async function http(method, path, body) {
   const token = localStorage.getItem('token')
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
+    credentials: 'include', // send the auth cookie
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),

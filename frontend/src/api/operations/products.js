@@ -4,6 +4,19 @@ import { http, toQuery, unwrap } from './http'
 
 const USE_MOCK = true
 
+export const PRODUCT_CATEGORIES = [
+  'solar_panel',
+  'inverter',
+  'battery',
+  'charge_controller',
+  'mounting_structure',
+  'cable',
+  'electrical',
+  'accessory',
+]
+
+export const PRODUCT_UNITS = ['pcs', 'set', 'm', 'pair']
+
 // Adds computed stock fields: inStock (free units) and isLowStock (inStock < reorderLevel).
 const withStock = (p) => {
   const inStock = p.trackSerial
