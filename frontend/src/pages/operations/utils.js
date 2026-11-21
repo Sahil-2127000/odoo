@@ -21,6 +21,9 @@ export const formatWarranty = (months) => {
 // Badge colour per SerialItem status.
 export const SERIAL_STATUS_TONE = { in_stock: 'green', reserved: 'amber', installed: 'blue', defective: 'red' }
 
+// Badge colour per ticket priority.
+export const PRIORITY_TONE = { urgent: 'red', high: 'orange', medium: 'amber', low: 'gray' }
+
 // Badge colour per Technician status.
 export const TECH_STATUS_TONE = { available: 'green', on_job: 'blue', leave: 'amber' }
 

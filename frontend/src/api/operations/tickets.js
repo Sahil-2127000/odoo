@@ -8,6 +8,12 @@ export const TICKET_TYPES = ['complaint', 'service', 'warranty_claim']
 export const TICKET_PRIORITIES = ['low', 'medium', 'high', 'urgent']
 export const TICKET_STATUSES = ['open', 'assigned', 'in_progress', 'resolved', 'closed']
 
+// Customers to raise a ticket for. Backend: GET /customers (Dev 1 / Dev 3).
+export async function getCustomers() {
+  if (!USE_MOCK) return http('GET', '/customers')
+  return unwrap(await respond(db.customers.map((c) => ({ _id: c._id, name: c.name, phone: c.phone, address: c.address }))))
+}
+
 const populate = (t) => ({
   ...t,
   customer: refs.customer(t.customer),
