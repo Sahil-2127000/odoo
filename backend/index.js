@@ -24,7 +24,7 @@ const PORT = process.env.PORT || 4000;
 dbConnect();
 
 // middlewares
-app.use(express.json());
+app.use(express.json({ limit: "10mb" })); // installation photo (base64) can be a few MB
 app.use(cookieParser());
 app.use(
   cors({

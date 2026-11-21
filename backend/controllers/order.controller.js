@@ -2,7 +2,10 @@ const Order = require("../models/Order");
 const Kit = require("../models/Kit");
 const Customer = require("../models/Customer");
 const Product = require("../models/Product");
+const User = require("../models/User");
 const generateCode = require("../util/generateCode.util");
+const { itemWarrantyEnd } = require("../util/warranty.util");
+const { uploadPhoto } = require("../util/cloudinary.util");
 
 const STATUS_FLOW = ["quoted", "confirmed", "packed", "dispatched", "delivered", "installed"];
 
@@ -83,6 +86,7 @@ exports.getOrders = async (req, res) => {
 
     const orders = await Order.find(filter)
       .populate("customer", "code name phone address")
+      .populate("assignedTechnician", "name phone")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -105,7 +109,8 @@ exports.getOrderById = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
       .populate("customer")
-      .populate("items.product", "name category warrantyYears");
+      .populate("items.product", "name category warrantyYears")
+      .populate("assignedTechnician", "name phone");
 
     if (!order) {
       return res.status(404).json({
@@ -189,8 +194,16 @@ exports.updateOrderStatus = async (req, res) => {
       order.serials = serials;
     }
 
-    // when installed, warranty starts today
+    // when installed, technician must attach a photo of the installed panel
     if (status === "installed") {
+      const { photo } = req.body;
+      if (!photo) {
+        return res.status(400).json({
+          success: false,
+          message: "A photo of the installed panel is required",
+        });
+      }
+      order.installationPhoto = await uploadPhoto(photo);
       order.installedAt = new Date();
     }
 
@@ -261,6 +274,95 @@ exports.addPayment = async (req, res) => {
   }
 };
 
+// GET /api/v1/orders/warranties   (staff) — every installed order with warranty status per item
+exports.getWarranties = async (req, res) => {
+  try {
+    const orders = await Order.find({ status: "installed" })
+      .populate("customer", "code name phone")
+      .populate("items.product", "name warrantyYears")
+      .sort({ installedAt: -1 });
+
+    const warranties = orders.map((order) => ({
+      orderCode: order.code,
+      customer: order.customer,
+      installedAt: order.installedAt,
+      items: order.items.map((item) => {
+        const warrantyEnd = itemWarrantyEnd(order, item);
+        return {
+          name: item.product.name,
+          warrantyYears: item.product.warrantyYears,
+          warrantyEnd,
+          status: warrantyEnd > new Date() ? "active" : "expired",
+        };
+      }),
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: "Warranties fetched",
+      data: warranties,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Could not fetch warranties",
+      error: error.message,
+    });
+  }
+};
+
+// PATCH /api/v1/orders/:id/schedule   body: { scheduledDate, assignedTechnician }
+// order must be "delivered" (installation not done yet)
+exports.scheduleInstallation = async (req, res) => {
+  try {
+    const { scheduledDate, assignedTechnician } = req.body;
+
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (order.status !== "delivered") {
+      return res.status(400).json({
+        success: false,
+        message: "Installation can only be scheduled once the order is delivered",
+      });
+    }
+
+    if (assignedTechnician) {
+      const technician = await User.findById(assignedTechnician);
+      if (!technician || technician.role !== "technician") {
+        return res.status(400).json({
+          success: false,
+          message: "Assigned user must be a technician",
+        });
+      }
+      order.assignedTechnician = assignedTechnician;
+    }
+
+    if (scheduledDate) order.scheduledDate = scheduledDate;
+
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Installation scheduled",
+      data: order,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Could not schedule installation",
+      error: error.message,
+    });
+  }
+};
+
 // GET /api/v1/orders/track?phone=9815488213&code=OR-1001   (public, no login)
 exports.trackOrder = async (req, res) => {
   try {
@@ -286,21 +388,12 @@ exports.trackOrder = async (req, res) => {
     }
 
     // warranty end = installed date + product warranty years
-    const items = order.items.map((item) => {
-      let warrantyEnd = null;
-
-      if (order.installedAt) {
-        warrantyEnd = new Date(order.installedAt);
-        warrantyEnd.setFullYear(warrantyEnd.getFullYear() + item.product.warrantyYears);
-      }
-
-      return {
-        name: item.product.name,
-        qty: item.qty,
-        warrantyYears: item.product.warrantyYears,
-        warrantyEnd,
-      };
-    });
+    const items = order.items.map((item) => ({
+      name: item.product.name,
+      qty: item.qty,
+      warrantyYears: item.product.warrantyYears,
+      warrantyEnd: itemWarrantyEnd(order, item),
+    }));
 
     return res.status(200).json({
       success: true,
