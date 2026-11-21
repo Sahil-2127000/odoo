@@ -16,6 +16,7 @@ const orderSchema = new mongoose.Schema(
     amountPaid: { type: Number, default: 0 }, // pending = total - amountPaid
     serials: [{ type: String }],              // serial numbers scanned at dispatch
     installedAt: { type: Date },              // warranty starts from this date
+    installationPhoto: { type: String },      // Cloudinary URL of the installed panel
     status: {
       type: String,
       enum: ["quoted", "confirmed", "packed", "dispatched", "delivered", "installed"],

@@ -2,6 +2,9 @@ const Ticket = require("../models/Ticket");
 const Order = require("../models/Order");
 const User = require("../models/User");
 const generateCode = require("../util/generateCode.util");
+const { isUnderWarranty } = require("../util/warranty.util");
+
+const OUT_OF_WARRANTY_CHARGE = 500; // flat parts + labour charge
 
 const OUT_OF_WARRANTY_CHARGE = 500; // flat parts + labour charge
 

@@ -1,14 +1,13 @@
-// Owner: Dev 3 (Sales). Edit freely — add/remove items for your pages.
+// Owner: Sales (Rakhi). Edit freely — add/remove items for your pages.
 // Each item: { label, to, icon (lucide-react), end?: true for exact match }
-import { ClipboardCheck, FileText, IndianRupee, LayoutDashboard, UserPlus, Users } from 'lucide-react'
+import { CalendarClock, ClipboardList, LifeBuoy, ShoppingCart, Users } from 'lucide-react'
 
 const navSales = [
-  { label: 'Dashboard', to: '/sales', icon: LayoutDashboard, end: true },
-  { label: 'Leads', to: '/sales/leads', icon: UserPlus },
+  { label: 'Enquiries', to: '/sales', icon: ClipboardList, end: true },
+  { label: "Today's follow-ups", to: '/sales/follow-ups', icon: CalendarClock },
   { label: 'Customers', to: '/sales/customers', icon: Users },
-  { label: 'Site Surveys', to: '/sales/surveys', icon: ClipboardCheck },
-  { label: 'Quotations', to: '/sales/quotations', icon: FileText },
-  { label: 'Payments', to: '/sales/payments', icon: IndianRupee },
+  { label: 'Orders', to: '/sales/orders', icon: ShoppingCart },
+  { label: 'Complaints', to: '/sales/complaints', icon: LifeBuoy },
 ]
 
 export default navSales
