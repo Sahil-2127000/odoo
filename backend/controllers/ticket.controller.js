@@ -2,19 +2,9 @@ const Ticket = require("../models/Ticket");
 const Order = require("../models/Order");
 const User = require("../models/User");
 const generateCode = require("../util/generateCode.util");
+const { isUnderWarranty } = require("../util/warranty.util");
 
 const OUT_OF_WARRANTY_CHARGE = 500; // flat parts + labour charge
-
-// true if any item on the order is still inside its warranty period
-const checkUnderWarranty = (order) => {
-  if (!order.installedAt) return false;
-
-  return order.items.some((item) => {
-    const warrantyEnd = new Date(order.installedAt);
-    warrantyEnd.setFullYear(warrantyEnd.getFullYear() + item.product.warrantyYears);
-    return warrantyEnd > new Date();
-  });
-};
 
 // POST /api/v1/tickets/public   body: { phone, orderCode, issue }   (no login)
 exports.createTicket = async (req, res) => {
@@ -48,7 +38,7 @@ exports.createTicket = async (req, res) => {
     }
 
     // check warranty automatically so the bill amount is decided up front
-    const underWarranty = checkUnderWarranty(order);
+    const underWarranty = isUnderWarranty(order);
 
     const ticket = await Ticket.create({
       code: await generateCode(Ticket, "TK"),
