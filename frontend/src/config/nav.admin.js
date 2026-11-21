@@ -1,12 +1,13 @@
-// Owner: Dev 2 (Admin). Sidebar items for the admin role.
-import { BarChart3, FileSpreadsheet, FolderKanban, LayoutDashboard, Users } from 'lucide-react'
+// Sidebar links for the Admin (Director). Owner: Frontend 1.
+// Each item: { label, to, icon (lucide-react), end: true = only active on exact path }
+import { Boxes, FileText, LayoutDashboard, Package, Users } from 'lucide-react'
 
 const navAdmin = [
   { label: 'Overview', to: '/admin', icon: LayoutDashboard, end: true },
-  { label: 'Projects', to: '/admin/projects', icon: FolderKanban },
-  { label: 'Financials', to: '/admin/analytics', icon: BarChart3 },
-  { label: 'Team', to: '/admin/team', icon: Users },
-  { label: 'Reports', to: '/admin/reports', icon: FileSpreadsheet },
+  { label: 'Products', to: '/admin/products', icon: Package },
+  { label: 'Kits', to: '/admin/kits', icon: Boxes },
+  { label: 'Users', to: '/admin/users', icon: Users },
+  { label: 'Invoices', to: '/admin/invoices', icon: FileText },
 ]
 
 export default navAdmin

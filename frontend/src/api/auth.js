@@ -1,28 +1,23 @@
-import api, { ApiError, mockDelay } from './axios'
+import api, { mockDelay } from './axios'
 import { mockUsers } from '@/mocks/users'
 
-// Flip to false once Dev 1 ships POST /auth/login.
+// true = use fake users from src/mocks/users.js. Set to false when the backend is running.
 export const USE_MOCK = true
 
-/**
- * Expected backend contract:
- *   POST /auth/login { email, password }
- *   -> { success: true, data: { token, user: { _id, name, email, role } }, message }
- */
+/** POST /auth/login { email, password } -> { token, user } */
 export async function login({ email, password }) {
   if (USE_MOCK) {
-    const user = mockUsers.find((u) => u.email.toLowerCase() === email.trim().toLowerCase())
-    if (!user || !password) {
-      await mockDelay(null, 300)
-      throw new ApiError('Invalid email or password', 401)
-    }
-    return mockDelay({ token: `mock-token-${user.role}`, user })
+    await mockDelay(null, 300)
+    const user = mockUsers.find((u) => u.email === email.trim().toLowerCase())
+    if (!user || !password) throw new Error('Invalid email or password')
+    return { token: `mock-token-${user.role}`, user }
   }
   return api.post('/auth/login', { email, password })
 }
 
-/** GET /auth/me -> user (optional; used to validate a stored token) */
+/** GET /auth/me -> { user }. Checks that the saved token is still valid. */
 export async function getMe() {
   if (USE_MOCK) return null
-  return api.get('/auth/me')
+  const res = await api.get('/auth/me')
+  return res.user
 }

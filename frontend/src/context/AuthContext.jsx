@@ -1,58 +1,69 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { TOKEN_KEY, USER_KEY } from '@/api/axios'
 import * as authApi from '@/api/auth'
 import { ROLE_HOME } from '@/constants/status'
 
 const AuthContext = createContext(null)
 
-function readStoredUser() {
+// Read the saved user from the browser (if any)
+function savedUser() {
   try {
-    const raw = localStorage.getItem(USER_KEY)
-    return raw ? JSON.parse(raw) : null
+    return JSON.parse(localStorage.getItem(USER_KEY))
   } catch {
     return null
   }
 }
 
+/**
+ * Holds who is logged in. Wrap the app with <AuthProvider>, then in any component:
+ *   const { user, token, login, logout } = useAuth()
+ */
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY))
-  const [user, setUser] = useState(() => (localStorage.getItem(TOKEN_KEY) ? readStoredUser() : null))
+  const [token, setToken] = useState(localStorage.getItem(TOKEN_KEY))
+  const [user, setUser] = useState(token ? savedUser() : null)
 
-  const login = useCallback(async (credentials) => {
-    const { token: newToken, user: newUser } = await authApi.login(credentials)
-    localStorage.setItem(TOKEN_KEY, newToken)
-    localStorage.setItem(USER_KEY, JSON.stringify(newUser))
-    setToken(newToken)
-    setUser(newUser)
-    return newUser
-  }, [])
+  // On page load, ask the backend (GET /auth/me) for fresh user details.
+  // If the token is no longer valid, the API client logs out automatically.
+  useEffect(() => {
+    if (!token) return
+    authApi
+      .getMe()
+      .then((freshUser) => {
+        if (freshUser) setUser(freshUser)
+      })
+      .catch(() => {})
+  }, [token])
 
-  const logout = useCallback(() => {
+  async function login(credentials) {
+    const result = await authApi.login(credentials) // { token, user }
+    localStorage.setItem(TOKEN_KEY, result.token)
+    localStorage.setItem(USER_KEY, JSON.stringify(result.user))
+    setToken(result.token)
+    setUser(result.user)
+    return result.user
+  }
+
+  function logout() {
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(USER_KEY)
     setToken(null)
     setUser(null)
-  }, [])
+  }
 
-  const value = useMemo(
-    () => ({
-      user,
-      token,
-      role: user?.role ?? null,
-      isAuthenticated: Boolean(token && user),
-      homePath: user ? ROLE_HOME[user.role] ?? '/login' : '/login',
-      login,
-      logout,
-    }),
-    [user, token, login, logout],
-  )
+  const value = {
+    user,
+    token,
+    role: user?.role,
+    isAuthenticated: Boolean(token && user),
+    homePath: ROLE_HOME[user?.role] || '/login', // where this user's dashboard is
+    login,
+    logout,
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>')
-  return ctx
+  return useContext(AuthContext)
 }

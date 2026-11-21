@@ -1,15 +1,20 @@
-// Shared UI kit — import from here:  import { Button, Card, DataTable } from '@/components/ui'
+// Shared components for everyone. Import from here:
+//   import { Button, DataTable, StatusBadge, useToast } from '@/components/ui'
 export { default as Button } from './Button'
 export { default as Input } from './Input'
 export { default as Select } from './Select'
 export { default as Textarea } from './Textarea'
+export { default as Field } from './Field'
 export { default as Card } from './Card'
 export { default as StatCard } from './StatCard'
 export { default as DataTable } from './DataTable'
 export { default as Modal } from './Modal'
-export { default as Badge } from './Badge'
+export { default as ConfirmDialog } from './ConfirmDialog'
 export { default as PageHeader } from './PageHeader'
 export { default as EmptyState } from './EmptyState'
 export { default as Loader, Skeleton } from './Loader'
 export { default as Tabs } from './Tabs'
-export { default as Field } from './Field'
+export { ToastProvider, useToast } from './Toast'
+
+// <StatusBadge status="in_progress" /> picks the colour from STATUS_COLORS. (Badge is the same thing.)
+export { default as StatusBadge, default as Badge } from './Badge'

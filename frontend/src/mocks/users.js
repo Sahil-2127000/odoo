@@ -1,7 +1,8 @@
-// Mock users for login while Dev 1's /auth/login is not ready.
-// Any password works in mock mode.
+// Fake staff users for login while the backend is not running (any password works).
+// Roles match the backend User model: admin, customer_care, warehouse, technician.
 export const mockUsers = [
-  { _id: 'u_admin', name: 'Admin User', email: 'admin@sunpower.com', role: 'admin' },
-  { _id: 'u_sales', name: 'Sales Executive', email: 'sales@sunpower.com', role: 'sales' },
-  { _id: 'u_ops', name: 'Operations Manager', email: 'ops@sunpower.com', role: 'operations' },
+  { _id: 'u1', name: 'Anita Director', email: 'admin@solarconnect.com', role: 'admin' },
+  { _id: 'u2', name: 'Rahul Sales', email: 'sales@solarconnect.com', role: 'customer_care' },
+  { _id: 'u3', name: 'Vikram Store', email: 'warehouse@solarconnect.com', role: 'warehouse' },
+  { _id: 'u4', name: 'Suresh Technician', email: 'tech@solarconnect.com', role: 'technician' },
 ]

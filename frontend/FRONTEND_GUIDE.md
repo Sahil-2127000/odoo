@@ -1,14 +1,14 @@
-# Frontend guide (for Devs 3 & 4)
+# Frontend guide (for Frontend 2 & 3)
 
 ```bash
 cd frontend
 npm install
-cp .env.example .env      # VITE_API_URL=http://localhost:5000/api
+cp .env.example .env      # VITE_API_URL=http://localhost:4000/api/v1
 npm run dev               # http://localhost:5173
 ```
 
-Login is in **mock mode** until Dev 1 ships `/auth/login` (`src/api/auth.js` → `USE_MOCK`).
-Demo accounts (any password): `admin@sunpower.com`, `sales@sunpower.com`, `ops@sunpower.com`.
+Login is in **mock mode** until the backend is running (`src/api/auth.js` → `USE_MOCK`).
+Demo accounts (any password in mock mode): `admin@solarconnect.com` (admin → /admin), `sales@solarconnect.com` (customer_care → /sales), `warehouse@solarconnect.com` (warehouse → /operations), `tech@solarconnect.com` (technician → /tech, mobile layout).
 
 Live component reference: log in as admin → **/admin/ui-kit**.
 
@@ -16,17 +16,18 @@ Live component reference: log in as admin → **/admin/ui-kit**.
 
 | You | Pages | Routes | Sidebar | API | Mocks |
 |---|---|---|---|---|---|
-| Dev 3 (Sales) | `src/pages/sales/` | `src/routes/salesRoutes.jsx` | `src/config/nav.sales.js` | `src/api/<module>.js` | `src/mocks/` |
-| Dev 4 (Ops) | `src/pages/operations/` | `src/routes/operationsRoutes.jsx` | `src/config/nav.operations.js` | `src/api/<module>.js` | `src/mocks/` |
+| Frontend 2 (Sales) | `src/pages/sales/` | `src/routes/salesRoutes.jsx` | `src/config/nav.sales.js` | `src/api/<module>.js` | `src/mocks/` |
+| Frontend 3 (Warehouse) | `src/pages/operations/` | `src/routes/operationsRoutes.jsx` | `src/config/nav.operations.js` | `src/api/<module>.js` | `src/mocks/` |
+| Frontend 3 (Technician) | `src/pages/tech/` | `src/routes/techRoutes.jsx` | none (mobile layout) | `src/api/<module>.js` | `src/mocks/` |
 
-Routes are relative children of `/sales` or `/operations` and already render inside `DashboardLayout`
+Routes are relative children of `/sales`, `/operations` or `/tech` and already render inside their layout
 and behind the role check. Don't touch `App.jsx`.
 
 ## Rules
 
-- **UI**: import only from `@/components/ui` — `Button, Input, Select, Textarea, Card, StatCard, DataTable, Modal, Badge, PageHeader, EmptyState, Loader, Skeleton, Tabs`. Need something new? Ask Dev 2.
+- **UI**: import only from `@/components/ui` — `Button, Input, Select, Textarea, Card, StatCard, DataTable, Modal, ConfirmDialog, StatusBadge, PageHeader, EmptyState, Loader, Skeleton, Tabs, useToast`. Need something new? Ask Frontend 1 (Purvika).
 - **Every page** starts with `<PageHeader title=... actions=... />`.
-- **Status colours**: `<Badge status={row.status} />`. Add new status values to `STATUS_COLORS` in `src/constants/status.js`.
+- **Status colours**: `<StatusBadge status={row.status} />`. Use only the frozen status names; they are listed at the top of `src/constants/status.js`.
 - **Formatting**: `formatCurrency`, `formatDate`, `formatDateTime`, `formatKw`, `formatPercent` from `@/utils/format`.
 - **API**: pages call functions in `src/api/*`, never axios or mocks directly. The axios instance unwraps `{ success, data, message }`, so `await api.get('/leads')` returns `data`; errors throw with `err.message`.
 

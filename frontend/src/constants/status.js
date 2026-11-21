@@ -1,19 +1,73 @@
-// Shared constants. Status values are lowercase snake_case (must match Mongoose enums exactly).
+// Shared constants. Values must match the backend exactly.
 
+// Staff roles (same as the backend User model)
 export const ROLES = {
   ADMIN: 'admin',
-  SALES: 'sales',
-  OPERATIONS: 'operations',
+  SALES: 'customer_care',
+  WAREHOUSE: 'warehouse',
+  TECHNICIAN: 'technician',
 }
 
-// Where each role lands after login.
+// Page each role lands on after login
 export const ROLE_HOME = {
-  [ROLES.ADMIN]: '/admin',
-  [ROLES.SALES]: '/sales',
-  [ROLES.OPERATIONS]: '/operations',
+  admin: '/admin',
+  customer_care: '/sales',
+  warehouse: '/operations',
+  technician: '/tech',
 }
 
-// Badge tones -> Tailwind classes (kept as full strings so Tailwind can see them).
+// Names shown in the sidebar and top bar
+export const ROLE_LABELS = {
+  admin: 'Admin',
+  customer_care: 'Sales',
+  warehouse: 'Warehouse',
+  technician: 'Technician',
+}
+
+// Frozen status names from the team brief (do not invent new ones):
+//   Lead:   new -> contacted -> survey_scheduled -> surveyed -> quoted -> won / lost
+//   Survey: pending -> approved / rejected
+//   Order:  quoted -> confirmed -> packed -> dispatched -> delivered -> installed -> closed
+//   Serial: in_stock -> dispatched -> delivered
+//   Job:    scheduled -> in_progress -> completed
+//   Ticket: open -> assigned -> resolved -> confirmed
+export const ORDER_STATUSES = ['quoted', 'confirmed', 'packed', 'dispatched', 'delivered', 'installed', 'closed']
+export const TICKET_STATUSES = ['open', 'assigned', 'resolved', 'confirmed']
+
+// Colour of each status badge
+export const STATUS_COLORS = {
+  // Lead
+  new: 'blue',
+  contacted: 'purple',
+  survey_scheduled: 'amber',
+  surveyed: 'orange',
+  quoted: 'purple',
+  won: 'green',
+  lost: 'red',
+  // Survey
+  pending: 'amber',
+  approved: 'green',
+  rejected: 'red',
+  // Order
+  confirmed: 'blue',
+  packed: 'amber',
+  dispatched: 'orange',
+  delivered: 'green',
+  installed: 'green',
+  closed: 'gray',
+  // Serial unit
+  in_stock: 'green',
+  // Job
+  scheduled: 'blue',
+  in_progress: 'amber',
+  completed: 'green',
+  // Ticket
+  open: 'red',
+  assigned: 'blue',
+  resolved: 'green',
+}
+
+// Colour name -> Tailwind classes (full strings so Tailwind can find them)
 export const TONE_CLASSES = {
   gray: 'bg-slate-100 text-slate-700 ring-slate-200',
   blue: 'bg-info-50 text-info-700 ring-info-500/20',
@@ -24,67 +78,10 @@ export const TONE_CLASSES = {
   purple: 'bg-violet-50 text-violet-700 ring-violet-500/20',
 }
 
-// status value -> tone. Add new statuses here (tell Dev 2) instead of hard-coding colours in pages.
-export const STATUS_COLORS = {
-  // Lead
-  new: 'blue',
-  contacted: 'purple',
-  qualified: 'orange',
-  converted: 'green',
-  lost: 'red',
-
-  // Site survey
-  scheduled: 'blue',
-  completed: 'green',
-  approved: 'green',
-  rejected: 'red',
-
-  // Quotation
-  draft: 'gray',
-  sent: 'blue',
-  accepted: 'green',
-  expired: 'gray',
-
-  // Order / installation
-  confirmed: 'blue',
-  in_progress: 'amber',
-  installed: 'green',
-  cancelled: 'red',
-  on_hold: 'gray',
-
-  // Payment
-  pending: 'amber',
-  partial: 'orange',
-  paid: 'green',
-  overdue: 'red',
-
-  // Inventory / serials
-  in_stock: 'green',
-  low_stock: 'amber',
-  out_of_stock: 'red',
-  reserved: 'purple',
-  dispatched: 'blue',
-
-  // Warranty
-  active: 'green',
-  void: 'red',
-
-  // Service ticket
-  open: 'red',
-  assigned: 'blue',
-  resolved: 'green',
-  closed: 'gray',
-
-  // Users / technicians
-  available: 'green',
-  busy: 'amber',
-  inactive: 'gray',
-}
-
 export const statusTone = (status) => STATUS_COLORS[status] ?? 'gray'
 
 // "in_progress" -> "In progress"
 export const statusLabel = (status = '') => {
-  const s = String(status).replace(/_/g, ' ')
-  return s.charAt(0).toUpperCase() + s.slice(1)
+  const text = String(status).replace(/_/g, ' ')
+  return text.charAt(0).toUpperCase() + text.slice(1)
 }

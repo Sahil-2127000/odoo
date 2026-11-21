@@ -1,59 +1,44 @@
 import axios from 'axios'
 
-export const TOKEN_KEY = 'sunpower_token'
-export const USER_KEY = 'sunpower_user'
+// Keys used to save the login in the browser
+export const TOKEN_KEY = 'solarconnect_token'
+export const USER_KEY = 'solarconnect_user'
 
+// One shared Axios instance for the whole app. Never create another one.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-  headers: { 'Content-Type': 'application/json' },
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1',
 })
 
-// Attach JWT
+// 1) Before every request: attach the login token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem(TOKEN_KEY)
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
-// Unwrap { success, data, message } and normalise errors.
-// Usage: const leads = await api.get('/leads')   // -> data, not the axios response
+// 2) After every response
 api.interceptors.response.use(
-  (res) => {
-    const body = res.data
-    if (body && typeof body === 'object' && 'success' in body) {
-      if (body.success === false) {
-        return Promise.reject(new ApiError(body.message || 'Request failed', res.status))
-      }
-      return body.data
-    }
-    return body
-  },
+  // Success: the backend sends { success, message, data }. We return just `data`.
+  // (Login sends { token, user } without `data`, so then we return the whole body.)
+  (res) => (res.data?.data !== undefined ? res.data.data : res.data),
+
+  // Error: turn it into a normal Error with a readable message
   (error) => {
     const status = error.response?.status
-    const message =
-      error.response?.data?.message ||
-      (error.code === 'ERR_NETWORK' ? 'Cannot reach the server' : error.message) ||
-      'Something went wrong'
+    const message = error.response?.data?.message || 'Cannot reach the server. Please try again.'
 
-    // Expired / invalid token -> drop session and go to login
-    if (status === 401 && !error.config?.url?.includes('/auth/login')) {
+    // Token expired or invalid -> log out and go to the login page
+    if (status === 401 && !error.config.url.includes('/auth/login')) {
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem(USER_KEY)
-      if (window.location.pathname !== '/login') window.location.assign('/login')
+      window.location.assign('/login')
     }
-    return Promise.reject(new ApiError(message, status))
+
+    return Promise.reject(new Error(message))
   },
 )
 
-export class ApiError extends Error {
-  constructor(message, status) {
-    super(message)
-    this.name = 'ApiError'
-    this.status = status
-  }
-}
-
-/** Simulates network latency for mock responses. */
+/** Waits a little and returns a copy of `data`. Used to fake API calls with mock data. */
 export const mockDelay = (data, ms = 300) =>
   new Promise((resolve) => setTimeout(() => resolve(structuredClone(data)), ms))
 

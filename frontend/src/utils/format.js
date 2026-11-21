@@ -18,6 +18,9 @@ export function formatCurrency(value, { compact = false } = {}) {
   return compact ? inrCompact.format(n) : inr.format(n)
 }
 
+/** Same as formatCurrency: 150000 -> "₹1,50,000" (name used in the team brief) */
+export const formatINR = formatCurrency
+
 /** 12345 -> "12,345" */
 export function formatNumber(value) {
   const n = Number(value)

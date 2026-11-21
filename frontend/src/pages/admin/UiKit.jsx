@@ -5,6 +5,7 @@ import {
   Badge,
   Button,
   Card,
+  ConfirmDialog,
   DataTable,
   EmptyState,
   Input,
@@ -15,6 +16,7 @@ import {
   StatCard,
   Tabs,
   Textarea,
+  useToast,
 } from '@/components/ui'
 import { STATUS_COLORS } from '@/constants/status'
 import { formatCurrency, formatDate, formatKw } from '@/utils/format'
@@ -28,6 +30,8 @@ const rows = [
 
 export default function UiKit() {
   const [open, setOpen] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const toast = useToast()
   const [tab, setTab] = useState('all')
   const [status, setStatus] = useState('')
   const data = status ? rows.filter((r) => r.status === status) : rows
@@ -52,6 +56,25 @@ export default function UiKit() {
             <Button size="sm">Small</Button>
             <Button size="lg">Large</Button>
           </div>
+        </Card>
+
+        <Card title="Toast and ConfirmDialog" subtitle="const toast = useToast(); toast.success('Saved')">
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={() => toast.success('Lead saved')}>Success toast</Button>
+            <Button variant="danger" onClick={() => toast.error('Could not save')}>Error toast</Button>
+            <Button variant="secondary" onClick={() => setConfirmOpen(true)}>Open ConfirmDialog</Button>
+          </div>
+          <ConfirmDialog
+            open={confirmOpen}
+            title="Delete product?"
+            message="This cannot be undone."
+            confirmText="Delete"
+            onConfirm={() => {
+              setConfirmOpen(false)
+              toast.success('Product deleted')
+            }}
+            onClose={() => setConfirmOpen(false)}
+          />
         </Card>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -135,7 +158,7 @@ export default function UiKit() {
       >
         <div className="space-y-4">
           <Input label="Name" required />
-          <Select label="Role" options={['admin', 'sales', 'operations']} />
+          <Select label="Role" options={['admin', 'customer_care', 'warehouse', 'technician']} />
         </div>
       </Modal>
     </>

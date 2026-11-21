@@ -1,4 +1,4 @@
-// Owner: Dev 2. Child routes rendered under /admin (inside DashboardLayout).
+// Pages under /admin (shown inside DashboardLayout). Owner: Frontend 1.
 import { Route } from 'react-router-dom'
 import Overview from '@/pages/admin/Overview'
 import UiKit from '@/pages/admin/UiKit'
@@ -7,11 +7,11 @@ import ComingSoon from '@/pages/common/ComingSoon'
 const adminRoutes = (
   <>
     <Route index element={<Overview />} />
-    <Route path="projects" element={<ComingSoon title="Projects" />} />
-    <Route path="projects/:id" element={<ComingSoon title="Project detail" />} />
-    <Route path="analytics" element={<ComingSoon title="Financial analytics" />} />
-    <Route path="team" element={<ComingSoon title="Team" />} />
-    <Route path="reports" element={<ComingSoon title="Reports" />} />
+    <Route path="products" element={<ComingSoon title="Products" />} />
+    <Route path="kits" element={<ComingSoon title="Kits" />} />
+    <Route path="users" element={<ComingSoon title="Users" />} />
+    <Route path="invoices" element={<ComingSoon title="Invoices" />} />
+    {/* Live preview of all shared components, for teammates */}
     <Route path="ui-kit" element={<UiKit />} />
   </>
 )
