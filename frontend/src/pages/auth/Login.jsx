@@ -6,8 +6,8 @@ import { ROLE_HOME, ROLE_LABELS } from '@/constants/status'
 import { mockUsers } from '@/mocks/users'
 import { Button, Input } from '@/components/ui'
 
-// Password used by the demo accounts (backend seed should use the same one)
-const DEMO_PASSWORD = 'demo123'
+// Password of the demo accounts created by the backend seed
+const DEMO_PASSWORD = 'password123'
 
 // One login page for all staff. After login each role goes to its own dashboard.
 export default function Login() {

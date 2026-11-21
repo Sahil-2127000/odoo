@@ -70,7 +70,7 @@ export const FAQS = [
   },
   {
     q: 'How do I check my order without calling?',
-    a: 'Go to Track my order and enter your phone number and order ID (for example SC-1042). It is printed on your quote and invoice.',
+    a: 'Go to Track my order and enter your phone number and order ID (for example OR-1001). It is printed on your quote and invoice.',
   },
 ]
 

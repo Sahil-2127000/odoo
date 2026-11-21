@@ -43,6 +43,7 @@ const orderToRow = (o) => ({
   workStatus: o.status,
   payment: paymentStatus(o.total, o.amountPaid),
 })
+// The backend does not record repair payments yet, so a repair bill counts as unpaid
 const repairToRow = (t) => ({
   key: `repair-${t._id}`,
   type: 'repair',
@@ -50,11 +51,11 @@ const repairToRow = (t) => ({
   number: t.code,
   customer: t.customer?.name,
   date: t.createdAt,
-  total: t.repairCharge,
-  paid: t.amountPaid,
-  balance: t.repairCharge - t.amountPaid,
+  total: t.billAmount,
+  paid: 0,
+  balance: t.billAmount,
   workStatus: t.status,
-  payment: paymentStatus(t.repairCharge, t.amountPaid),
+  payment: 'unpaid',
 })
 
 export default function Invoices() {
@@ -70,7 +71,9 @@ export default function Invoices() {
   useEffect(() => {
     Promise.all([getOrders(), getRepairBills()])
       .then(([orders, bills]) => {
-        const all = [...orders.map(orderToRow), ...bills.map(repairToRow)]
+        // a quote is not a sale yet, so quoted orders are left out (same as the dashboard revenue)
+        const sales = orders.filter((o) => o.status !== 'quoted')
+        const all = [...sales.map(orderToRow), ...bills.map(repairToRow)]
         setRows(all.sort((a, b) => new Date(b.date) - new Date(a.date)))
       })
       .catch((err) => toast.error(err.message))

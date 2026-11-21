@@ -30,15 +30,16 @@ export default function InvoicePrint() {
   // Lines on the invoice
   const lines = isOrder
     ? doc.items.map((i) => ({ name: i.product?.name ?? 'Product', qty: i.qty, rate: i.price, amount: i.qty * i.price }))
-    : [{ name: `Repair: ${doc.issue}`, qty: 1, rate: doc.repairCharge, amount: doc.repairCharge }]
+    : [{ name: `Repair: ${doc.issue}`, qty: 1, rate: doc.billAmount, amount: doc.billAmount }]
 
   // For orders the total already includes GST, so split it back out
-  const total = isOrder ? doc.total : doc.repairCharge
+  const total = isOrder ? doc.total : doc.billAmount
+  const paid = isOrder ? doc.amountPaid : 0 // repair payments are not recorded by the backend yet
   const subtotal = isOrder ? Math.round(total / (1 + GST_RATE)) : total
   const gst = total - subtotal
   const cgst = Math.round(gst / 2) // GST is split half and half
   const sgst = gst - cgst
-  const balance = total - doc.amountPaid
+  const balance = total - paid
 
   return (
     <div className="min-h-screen bg-slate-100 py-8 print:bg-white print:py-0">
@@ -126,7 +127,7 @@ export default function InvoicePrint() {
             <span>Total</span>
             <span>{formatCurrency(total)}</span>
           </div>
-          <Row label="Paid" value={formatCurrency(doc.amountPaid)} />
+          <Row label="Paid" value={formatCurrency(paid)} />
           <div className="flex justify-between font-semibold">
             <span>Balance due</span>
             <span className={balance > 0 ? 'text-danger-700' : 'text-success-700'}>{formatCurrency(balance)}</span>

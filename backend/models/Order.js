@@ -14,6 +14,7 @@ const orderSchema = new mongoose.Schema(
     total: { type: Number, default: 0 },      // including 18% GST
     totalCost: { type: Number, default: 0 },  // profit = total - totalCost
     amountPaid: { type: Number, default: 0 }, // pending = total - amountPaid
+    serials: [{ type: String }],              // serial numbers scanned at dispatch
     installedAt: { type: Date },              // warranty starts from this date
     status: {
       type: String,

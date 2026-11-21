@@ -1,41 +1,39 @@
-// Pop-up that shows how the profit of one job is worked out.
-import { Modal } from '@/components/ui'
-import { formatCurrency, formatKw, formatPercent } from '@/utils/format'
+// Pop-up that shows how the profit of one order is worked out.
+import { Modal, StatusBadge } from '@/components/ui'
+import { formatCurrency, formatPercent } from '@/utils/format'
 
-export default function ProfitModal({ job, onClose }) {
-  if (!job) return null
+export default function ProfitModal({ order, onClose }) {
+  if (!order) return null
 
-  const rows = [
-    { label: 'Sale price', value: job.sale },
-    { label: 'Parts cost', value: -job.partsCost },
-    { label: 'Labour', value: -job.labour },
-    { label: 'Repair cost', value: -job.repairCost },
-  ]
+  const profit = order.total - order.totalCost
 
   return (
-    <Modal
-      open
-      onClose={onClose}
-      title={`Profit breakdown · ${job.orderNumber}`}
-      description={`${job.customerName} · ${formatKw(job.capacityKw)} system`}
-      size="sm"
-    >
+    <Modal open onClose={onClose} title={`Profit breakdown · ${order.code}`} description={order.customer?.name} size="sm">
       <dl className="divide-y divide-slate-100 text-sm">
-        {rows.map((row) => (
-          <div key={row.label} className="flex justify-between py-2.5">
-            <dt className="text-slate-600">{row.label}</dt>
-            <dd className={row.value < 0 ? 'text-danger-700' : 'text-slate-900'}>
-              {row.value < 0 ? '− ' : ''}
-              {formatCurrency(Math.abs(row.value))}
-            </dd>
-          </div>
-        ))}
+        <div className="flex justify-between py-2.5">
+          <dt className="text-slate-600">Sale price (incl. 18% GST)</dt>
+          <dd className="text-slate-900">{formatCurrency(order.total)}</dd>
+        </div>
+        <div className="flex justify-between py-2.5">
+          <dt className="text-slate-600">Cost of parts and labour</dt>
+          <dd className="text-danger-700">− {formatCurrency(order.totalCost)}</dd>
+        </div>
         <div className="flex justify-between py-3 text-base font-semibold">
           <dt className="text-slate-900">Profit</dt>
-          <dd className={job.profit >= 0 ? 'text-success-700' : 'text-danger-700'}>{formatCurrency(job.profit)}</dd>
+          <dd className={profit >= 0 ? 'text-success-700' : 'text-danger-700'}>{formatCurrency(profit)}</dd>
+        </div>
+        <div className="flex justify-between py-2.5">
+          <dt className="text-slate-600">Paid so far</dt>
+          <dd>{formatCurrency(order.amountPaid)}</dd>
+        </div>
+        <div className="flex justify-between py-2.5">
+          <dt className="text-slate-600">Status</dt>
+          <dd>
+            <StatusBadge status={order.status} />
+          </dd>
         </div>
       </dl>
-      <p className="text-xs text-slate-500">Margin: {formatPercent(job.profit / job.sale)} of the sale price.</p>
+      <p className="mt-2 text-xs text-slate-500">Margin: {formatPercent(profit / order.total)} of the sale price.</p>
     </Modal>
   )
 }

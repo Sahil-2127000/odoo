@@ -24,47 +24,44 @@ export const ROLE_LABELS = {
   technician: 'Technician',
 }
 
-// Frozen status names from the team brief (do not invent new ones):
-//   Lead:   new -> contacted -> survey_scheduled -> surveyed -> quoted -> won / lost
-//   Survey: pending -> approved / rejected
-//   Order:  quoted -> confirmed -> packed -> dispatched -> delivered -> installed -> closed
-//   Serial: in_stock -> dispatched -> delivered
-//   Job:    scheduled -> in_progress -> completed
-//   Ticket: open -> assigned -> resolved -> confirmed
-export const ORDER_STATUSES = ['quoted', 'confirmed', 'packed', 'dispatched', 'delivered', 'installed', 'closed']
+// Status names, exactly as the backend models use them:
+//   Enquiry: new -> follow_up -> converted / lost
+//   Survey:  pending -> approved / rejected (survey must be approved before an enquiry converts)
+//   Order:   quoted -> confirmed -> packed -> dispatched -> delivered -> installed (only the next step is allowed)
+//   Ticket:  open -> assigned -> resolved -> confirmed (customer confirms the repair works)
+export const ENQUIRY_STATUSES = ['new', 'follow_up', 'converted', 'lost']
+export const SURVEY_STATUSES = ['pending', 'approved', 'rejected']
+export const ORDER_STATUSES = ['quoted', 'confirmed', 'packed', 'dispatched', 'delivered', 'installed']
 export const TICKET_STATUSES = ['open', 'assigned', 'resolved', 'confirmed']
 
 // Colour of each status badge
 export const STATUS_COLORS = {
-  // Lead
+  // Enquiry
   new: 'blue',
-  contacted: 'purple',
-  survey_scheduled: 'amber',
-  surveyed: 'orange',
-  quoted: 'purple',
-  won: 'green',
+  follow_up: 'amber',
+  converted: 'green',
   lost: 'red',
   // Survey
   pending: 'amber',
   approved: 'green',
   rejected: 'red',
   // Order
+  quoted: 'purple',
   confirmed: 'blue',
   packed: 'amber',
   dispatched: 'orange',
   delivered: 'green',
   installed: 'green',
-  closed: 'gray',
-  // Serial unit
-  in_stock: 'green',
-  // Job
-  scheduled: 'blue',
-  in_progress: 'amber',
-  completed: 'green',
-  // Ticket
+  // Ticket (confirmed is shared with Order above)
   open: 'red',
   assigned: 'blue',
   resolved: 'green',
+  // Used only by the Operations / Technician mock screens
+  in_stock: 'green',
+  scheduled: 'blue',
+  in_progress: 'amber',
+  completed: 'green',
+  closed: 'gray',
 }
 
 // Colour name -> Tailwind classes (full strings so Tailwind can find them)
