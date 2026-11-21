@@ -8,7 +8,7 @@ npm run dev               # http://localhost:5173
 ```
 
 Login is in **mock mode** until the backend is running (`src/api/auth.js` → `USE_MOCK`).
-Demo accounts (any password in mock mode): `admin@solarconnect.com` (admin → /admin), `sales@solarconnect.com` (customer_care → /sales), `warehouse@solarconnect.com` (warehouse → /operations), `tech@solarconnect.com` (technician → /tech, mobile layout).
+Demo accounts (created by `npm run seed` in backend, password `password123`): `admin@solarflow.in` (admin → /admin), `care@solarflow.in` (customer_care → /sales), `warehouse@solarflow.in` (warehouse → /operations), `tech@solarflow.in` (technician → /tech, mobile layout).
 
 Live component reference: log in as admin → **/admin/ui-kit**.
 

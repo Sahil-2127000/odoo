@@ -1,8 +1,8 @@
-// Fake staff users for login while the backend is not running (any password works).
-// Roles match the backend User model: admin, customer_care, warehouse, technician.
+// Demo staff accounts. Same people as the backend seed (backend/seed/seed.js).
+// The login page shows these as click-to-fill buttons. Password for all: password123
 export const mockUsers = [
-  { _id: 'u1', name: 'Anita Director', email: 'admin@solarconnect.com', role: 'admin' },
-  { _id: 'u2', name: 'Rahul Sales', email: 'sales@solarconnect.com', role: 'customer_care' },
-  { _id: 'u3', name: 'Vikram Store', email: 'warehouse@solarconnect.com', role: 'warehouse' },
-  { _id: 'u4', name: 'Suresh Technician', email: 'tech@solarconnect.com', role: 'technician' },
+  { _id: 'u1', name: 'Admin', email: 'admin@solarflow.in', role: 'admin' },
+  { _id: 'u2', name: 'Simran Kaur', email: 'care@solarflow.in', role: 'customer_care' },
+  { _id: 'u3', name: 'Manoj Kumar', email: 'warehouse@solarflow.in', role: 'warehouse' },
+  { _id: 'u4', name: 'Gurpreet Singh', email: 'tech@solarflow.in', role: 'technician' },
 ]

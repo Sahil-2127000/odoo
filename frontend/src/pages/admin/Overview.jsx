@@ -1,105 +1,133 @@
 // Admin dashboard home (/admin): KPI cards, charts and the tables that need attention.
+// KPI numbers come from GET /dashboard/admin. The charts are worked out from the orders,
+// enquiries and tickets lists, because the backend has no chart endpoints.
 import { useEffect, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Download, Hammer, IndianRupee, LifeBuoy, Wallet } from 'lucide-react'
-import { Button, Card, DataTable, PageHeader, StatCard, StatusBadge, Tabs } from '@/components/ui'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Download,
+  Hammer,
+  IndianRupee,
+  LifeBuoy,
+  TrendingUp,
+  UserPlus,
+  Wallet,
+} from 'lucide-react'
+import { Button, Card, DataTable, PageHeader, StatCard, StatusBadge, Tabs, useToast } from '@/components/ui'
 import FunnelChart from '@/components/dashboard/FunnelChart'
 import ProfitChart from '@/components/dashboard/ProfitChart'
 import ProfitModal from '@/components/dashboard/ProfitModal'
 import RevenueChart from '@/components/dashboard/RevenueChart'
-import { getDashboardSummary, getFunnel, getProfitPerJob } from '@/api/dashboard'
+import { getAdminDashboard, getEnquiries, getOrders, getTickets } from '@/api/dashboard'
 import { useAuth } from '@/context/AuthContext'
 import { downloadCSV } from '@/utils/csv'
-import { formatCurrency, formatDate, formatKw } from '@/utils/format'
+import { formatCurrency, formatDate } from '@/utils/format'
 
 const RANGES = [
   { value: 'today', label: 'Today' },
-  { value: 'week', label: 'This week' },
+  { value: 'week', label: 'Last 7 days' },
   { value: 'month', label: 'This month' },
 ]
 
+const DAY = 24 * 60 * 60 * 1000
+const UNFINISHED = ['confirmed', 'packed', 'dispatched', 'delivered'] // sold but not installed yet
+
 // How many days ago a date was
-const daysOld = (date) => Math.floor((Date.now() - new Date(date)) / (24 * 60 * 60 * 1000))
+const daysOld = (date) => Math.floor((Date.now() - new Date(date)) / DAY)
+
+// Revenue per day for the chart. Quoted orders are not sales yet, so they are skipped (same as the backend).
+function revenueByDay(orders, days) {
+  const result = []
+  for (let i = days - 1; i >= 0; i--) {
+    const day = new Date(Date.now() - i * DAY).toDateString()
+    const revenue = orders
+      .filter((o) => o.status !== 'quoted' && new Date(o.createdAt).toDateString() === day)
+      .reduce((sum, o) => sum + o.total, 0)
+    result.push({ label: new Date(day).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }), revenue })
+  }
+  return result
+}
 
 export default function Overview() {
   const { user } = useAuth()
+  const toast = useToast()
   const [range, setRange] = useState('today')
-  const [summaries, setSummaries] = useState({}) // one summary saved per range: { today: {...}, week: {...} }
-  const [profitJobs, setProfitJobs] = useState([])
-  const [funnel, setFunnel] = useState([])
-  const [selectedJob, setSelectedJob] = useState(null) // job shown in the profit pop-up
-  const [error, setError] = useState('')
+  const [stats, setStats] = useState(null)
+  const [orders, setOrders] = useState([])
+  const [enquiries, setEnquiries] = useState([])
+  const [tickets, setTickets] = useState([])
+  const [selectedOrder, setSelectedOrder] = useState(null) // order shown in the profit pop-up
 
-  const summary = summaries[range]
-  const loading = !summary
-
-  // Load the summary whenever the range changes (skip if we already have it)
+  // Load everything once, at the same time
   useEffect(() => {
-    if (summaries[range]) return
-    getDashboardSummary(range)
-      .then((data) => setSummaries((prev) => ({ ...prev, [range]: data })))
-      .catch((err) => setError(err.message))
-  }, [range, summaries])
-
-  // Profit per job and the lead funnel do not depend on the range, so load them once
-  useEffect(() => {
-    Promise.all([getProfitPerJob(), getFunnel()])
-      .then(([jobs, stages]) => {
-        setProfitJobs(jobs)
-        setFunnel(stages)
+    Promise.all([getAdminDashboard(), getOrders(), getEnquiries(), getTickets()])
+      .then(([dashboard, orderList, enquiryList, ticketList]) => {
+        setStats(dashboard)
+        setOrders(orderList)
+        setEnquiries(enquiryList)
+        setTickets(ticketList)
       })
-      .catch((err) => setError(err.message))
-  }, [])
+      .catch((err) => toast.error(err.message))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loading = !stats
+  const sales = orders.filter((o) => o.status !== 'quoted') // real sales (profit chart, CSV)
+  const unfinishedJobs = orders.filter((o) => UNFINISHED.includes(o.status))
+  const oldTickets = tickets.filter((t) => ['open', 'assigned'].includes(t.status) && daysOld(t.createdAt) > 3)
+  const rangeLabel = RANGES.find((r) => r.value === range).label
 
   const kpis = [
-    { label: 'Revenue', value: formatCurrency(summary?.revenue), icon: IndianRupee, tone: 'orange' },
-    { label: 'Payments pending', value: formatCurrency(summary?.paymentsPending), icon: Wallet, tone: 'amber' },
-    { label: 'Installs completed', value: summary?.installsCompleted, icon: CheckCircle2, tone: 'green' },
-    { label: 'Unfinished installs', value: summary?.unfinishedInstalls, icon: Hammer, tone: 'blue' },
-    { label: 'Open tickets', value: summary?.openTickets, icon: LifeBuoy, tone: 'red' },
-    { label: 'Low-stock items', value: summary?.lowStockItems, icon: AlertTriangle, tone: 'purple' },
+    { label: `Revenue · ${rangeLabel}`, value: formatCurrency(stats?.revenue[range]), icon: IndianRupee, tone: 'orange', hint: `Total ${formatCurrency(stats?.revenue.total)}` },
+    { label: 'Payments pending', value: formatCurrency(stats?.pendingPayments), icon: Wallet, tone: 'amber', hint: `Collected ${formatCurrency(stats?.collected)}` },
+    { label: 'Profit', value: formatCurrency(stats?.profit), icon: TrendingUp, tone: 'green', hint: 'Revenue minus cost' },
+    { label: 'New enquiries', value: stats?.counts.newEnquiries, icon: UserPlus, tone: 'purple', hint: `${stats?.counts.pendingQuotes ?? 0} quotes waiting` },
+    { label: 'Installs completed', value: stats?.counts.installedOrders, icon: CheckCircle2, tone: 'green' },
+    { label: 'Unfinished installs', value: stats?.counts.unfinishedInstalls, icon: Hammer, tone: 'blue' },
+    { label: 'Open tickets', value: stats?.counts.openTickets, icon: LifeBuoy, tone: 'red' },
+    { label: 'Low-stock items', value: stats?.counts.lowStockCount, icon: AlertTriangle, tone: 'amber' },
   ]
 
-  // Build the CSV: KPI numbers first, then the profit of every job
+  // CSV: KPI numbers first, then the profit of every order
   function exportCSV() {
-    const rangeLabel = RANGES.find((r) => r.value === range).label
     const rows = [
-      ['SolarConnect summary', rangeLabel],
+      ['SolarConnect summary', formatDate(new Date())],
       [],
       ['KPI', 'Value'],
-      ['Revenue (INR)', summary.revenue],
-      ['Payments pending (INR)', summary.paymentsPending],
-      ['Installs completed', summary.installsCompleted],
-      ['Unfinished installs', summary.unfinishedInstalls],
-      ['Open tickets', summary.openTickets],
-      ['Low-stock items', summary.lowStockItems],
+      ['Revenue today (INR)', stats.revenue.today],
+      ['Revenue last 7 days (INR)', stats.revenue.week],
+      ['Revenue this month (INR)', stats.revenue.month],
+      ['Revenue total (INR)', stats.revenue.total],
+      ['Collected (INR)', stats.collected],
+      ['Payments pending (INR)', stats.pendingPayments],
+      ['Profit (INR)', stats.profit],
+      ['New enquiries', stats.counts.newEnquiries],
+      ['Installs completed', stats.counts.installedOrders],
+      ['Unfinished installs', stats.counts.unfinishedInstalls],
+      ['Open tickets', stats.counts.openTickets],
+      ['Low-stock items', stats.counts.lowStockCount],
       [],
-      ['Order', 'Customer', 'Sale', 'Parts cost', 'Labour', 'Repair cost', 'Profit'],
-      ...profitJobs.map((j) => [j.orderNumber, j.customerName, j.sale, j.partsCost, j.labour, j.repairCost, j.profit]),
+      ['Order', 'Customer', 'Status', 'Total', 'Cost', 'Profit', 'Paid'],
+      ...sales.map((o) => [o.code, o.customer?.name, o.status, o.total, o.totalCost, o.total - o.totalCost, o.amountPaid]),
     ]
-    downloadCSV(`solarconnect-summary-${range}.csv`, rows)
+    downloadCSV('solarconnect-summary.csv', rows)
   }
 
   const jobColumns = [
-    { key: 'orderNumber', header: 'Order', className: 'font-medium text-slate-900' },
-    { key: 'customerName', header: 'Customer' },
-    { key: 'capacityKw', header: 'Size', render: (j) => formatKw(j.capacityKw) },
-    { key: 'stage', header: 'Stage', render: (j) => <StatusBadge status={j.stage} /> },
-    { key: 'technician', header: 'Technician' },
+    { key: 'code', header: 'Order', className: 'font-medium text-slate-900' },
+    { key: 'customer.name', header: 'Customer' },
+    { key: 'status', header: 'Stage', render: (o) => <StatusBadge status={o.status} /> },
+    { key: 'pending', header: 'Pending', align: 'right', render: (o) => formatCurrency(o.total - o.amountPaid) },
   ]
 
   const ticketColumns = [
-    { key: 'ticketNumber', header: 'Ticket', className: 'font-medium text-slate-900' },
-    { key: 'customerName', header: 'Customer' },
-    { key: 'issue', header: 'Problem' },
+    { key: 'code', header: 'Ticket', className: 'font-medium text-slate-900' },
+    { key: 'customer.name', header: 'Customer' },
+    { key: 'issue', header: 'Problem', className: 'max-w-xs truncate' },
     { key: 'status', header: 'Status', render: (t) => <StatusBadge status={t.status} /> },
     {
       key: 'createdAt',
       header: 'Age',
-      render: (t) => (
-        <span title={formatDate(t.createdAt)} className="font-medium text-danger-700">
-          {daysOld(t.createdAt)} days
-        </span>
-      ),
+      render: (t) => <span className="font-medium text-danger-700">{daysOld(t.createdAt)} days</span>,
     },
   ]
 
@@ -115,17 +143,10 @@ export default function Overview() {
         }
       />
 
-      {error && (
-        <div className="mb-4 rounded-lg border border-danger-500/30 bg-danger-50 px-4 py-3 text-sm text-danger-700">
-          {error}
-        </div>
-      )}
-
-      {/* Today / This week / This month */}
+      {/* Today / Last 7 days / This month (changes the revenue card and chart) */}
       <Tabs tabs={RANGES} value={range} onChange={setRange} className="mb-6" />
 
-      {/* 6 KPI cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {kpis.map((k) => (
           <StatCard key={k.label} {...k} loading={loading} />
         ))}
@@ -133,17 +154,17 @@ export default function Overview() {
 
       {/* Revenue line chart + lead funnel */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card title="Revenue by day" subtitle={RANGES.find((r) => r.value === range).label} className="lg:col-span-2">
-          {loading ? <ChartPlaceholder /> : <RevenueChart data={summary.revenueByDay} />}
+        <Card title="Revenue by day" subtitle={range === 'month' ? 'Last 30 days' : 'Last 7 days'} className="lg:col-span-2">
+          {loading ? <ChartPlaceholder /> : <RevenueChart data={revenueByDay(orders, range === 'month' ? 30 : 7)} />}
         </Card>
-        <Card title="Lead funnel" subtitle="From new enquiry to won">
-          {funnel.length ? <FunnelChart stages={funnel} /> : <ChartPlaceholder />}
+        <Card title="Lead funnel" subtitle="Enquiries by status">
+          {loading ? <ChartPlaceholder /> : <FunnelChart enquiries={enquiries} />}
         </Card>
       </div>
 
-      {/* Profit per job bar chart */}
-      <Card title="Profit per job" subtitle="Top 10 jobs · click a bar to see the breakdown" className="mt-6">
-        {profitJobs.length ? <ProfitChart jobs={profitJobs} onSelect={setSelectedJob} /> : <ChartPlaceholder />}
+      {/* Profit per order */}
+      <Card title="Profit per job" subtitle="Top 10 orders · click a bar to see the breakdown" className="mt-6">
+        {loading ? <ChartPlaceholder /> : <ProfitChart orders={sales} onSelect={setSelectedOrder} />}
       </Card>
 
       {/* Tables that need attention */}
@@ -152,10 +173,10 @@ export default function Overview() {
           <h3 className="mb-3 text-sm font-semibold text-slate-900">Unfinished jobs</h3>
           <DataTable
             columns={jobColumns}
-            data={summary?.unfinishedJobs}
+            data={unfinishedJobs}
             loading={loading}
-            rowKey="orderNumber"
             pageSize={5}
+            onRowClick={setSelectedOrder}
             emptyTitle="All jobs are finished"
           />
         </div>
@@ -163,9 +184,8 @@ export default function Overview() {
           <h3 className="mb-3 text-sm font-semibold text-slate-900">Open tickets older than 3 days</h3>
           <DataTable
             columns={ticketColumns}
-            data={summary?.oldTickets}
+            data={oldTickets}
             loading={loading}
-            rowKey="ticketNumber"
             pageSize={5}
             emptyTitle="No old tickets"
             emptyDescription="Every ticket is being handled on time."
@@ -173,8 +193,7 @@ export default function Overview() {
         </div>
       </div>
 
-      {/* Profit pop-up, opened by clicking a bar */}
-      <ProfitModal job={selectedJob} onClose={() => setSelectedJob(null)} />
+      <ProfitModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
     </>
   )
 }

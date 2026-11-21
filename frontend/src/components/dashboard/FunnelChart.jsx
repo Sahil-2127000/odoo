@@ -1,34 +1,35 @@
-// Lead funnel: how many leads reached each stage, from "new" down to "won".
-// Drawn as simple bars whose width is the share of all new leads.
+// Lead funnel: how many enquiries are at each status, as a share of all enquiries.
 import { statusLabel } from '@/constants/status'
 
-export default function FunnelChart({ stages }) {
-  const total = stages[0]?.count || 1 // everyone starts as a "new" lead
+const STAGES = ['new', 'follow_up', 'converted', 'lost']
+
+export default function FunnelChart({ enquiries }) {
+  const total = enquiries.length || 1 // avoid dividing by 0
+  const countOf = (status) => enquiries.filter((e) => e.status === status).length
 
   return (
     <div className="space-y-3">
-      {stages.map((stage) => {
-        const percent = Math.round((stage.count / total) * 100)
+      {STAGES.map((status) => {
+        const count = countOf(status)
+        const percent = Math.round((count / total) * 100)
+        const color = status === 'converted' ? 'bg-success-500' : status === 'lost' ? 'bg-danger-500' : 'bg-primary-500'
         return (
-          <div key={stage.status}>
+          <div key={status}>
             <div className="mb-1 flex justify-between text-sm">
-              <span className="font-medium text-slate-700">{statusLabel(stage.status)}</span>
+              <span className="font-medium text-slate-700">{statusLabel(status)}</span>
               <span className="text-slate-500">
-                {stage.count} <span className="text-xs">({percent}%)</span>
+                {count} <span className="text-xs">({percent}%)</span>
               </span>
             </div>
             <div className="h-3 rounded-full bg-slate-100">
-              <div
-                className={stage.status === 'won' ? 'h-3 rounded-full bg-success-500' : 'h-3 rounded-full bg-primary-500'}
-                style={{ width: `${percent}%` }}
-              />
+              <div className={`h-3 rounded-full ${color}`} style={{ width: `${percent}%` }} />
             </div>
           </div>
         )
       })}
       <p className="pt-2 text-xs text-slate-500">
-        Conversion: <b className="text-slate-700">{Math.round(((stages.at(-1)?.count || 0) / total) * 100)}%</b> of new
-        leads were won.
+        {enquiries.length} enquiries in total ·{' '}
+        <b className="text-slate-700">{Math.round((countOf('converted') / total) * 100)}%</b> converted to customers.
       </p>
     </div>
   )

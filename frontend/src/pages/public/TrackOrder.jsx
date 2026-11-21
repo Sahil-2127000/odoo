@@ -1,28 +1,29 @@
+// /track - customers check their order with phone number + order code (no login).
+// They can see the status timeline and warranty of each item, report a problem
+// after installation, and confirm that a resolved repair works.
 import { useState } from 'react'
 import {
-  ShieldCheck,
-  Search,
-  Phone,
-  FileText,
   AlertCircle,
-  CheckCircle2,
-  Wrench,
-  Calendar,
   AlertTriangle,
-  RotateCcw,
   Check,
-  Package,
-  Truck,
+  CheckCircle2,
+  FileText,
   Home,
-  CheckCheck,
+  Package,
+  Phone,
+  RotateCcw,
+  Search,
+  ShieldCheck,
+  Truck,
+  Wrench,
 } from 'lucide-react'
 import Navbar from './Navbar'
 import Footer from './Footer'
-import { trackOrder, reportProblem, confirmTicket } from '@/api/public'
+import { confirmTicket, reportProblem, trackOrder } from '@/api/public'
 import { formatCurrency, formatDate } from '@/utils/format'
-import { Button, Input, Select, Textarea, Modal, Badge } from '@/components/ui'
+import { Badge, Button, Input, Modal, Select, Textarea } from '@/components/ui'
 
-// Frozen order statuses from brief
+// Order statuses from the backend, in order
 const ORDER_STEPS = [
   { key: 'quoted', label: 'Quoted', icon: FileText },
   { key: 'confirmed', label: 'Confirmed', icon: CheckCircle2 },
@@ -30,365 +31,262 @@ const ORDER_STEPS = [
   { key: 'dispatched', label: 'Dispatched', icon: Truck },
   { key: 'delivered', label: 'Delivered', icon: Home },
   { key: 'installed', label: 'Installed', icon: Wrench },
-  { key: 'closed', label: 'Completed', icon: CheckCheck },
 ]
 
+const ISSUE_TYPES = [
+  { value: 'Inverter shows an error code', label: 'Error code on inverter (e.g. E07)' },
+  { value: 'No power from the system', label: 'No power at all' },
+  { value: 'Low generation', label: 'Low generation / less output' },
+  { value: 'Physical damage', label: 'Physical damage (panel, stand, wire)' },
+  { value: 'Other problem', label: 'Other problem' },
+]
+
+// Warranty is valid if its end date is in the future (no end date = not installed yet)
+const isUnderWarranty = (item) => Boolean(item.warrantyEnd) && new Date(item.warrantyEnd) > new Date()
+
 export default function TrackOrder() {
-  // Search inputs
+  // Lookup form
   const [phone, setPhone] = useState('')
-  const [orderId, setOrderId] = useState('')
+  const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-
-  // Order data retrieved
   const [order, setOrder] = useState(null)
 
-  // Report Problem Modal state (B3)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [selectedEquipment, setSelectedEquipment] = useState(null)
-  const [reportForm, setReportForm] = useState({
-    issueType: 'fault_code',
-    faultCode: '',
-    description: '',
-    preferredDate: '',
-  })
-  const [submittingTicket, setSubmittingTicket] = useState(false)
-  const [ticketSuccessMessage, setTicketSuccessMessage] = useState('')
+  // Tickets raised or confirmed in this visit
+  const [tickets, setTickets] = useState([])
 
-  // Confirming ticket state
-  const [confirmingTicketId, setConfirmingTicketId] = useState(null)
+  // Report a problem pop-up
+  const [reportItem, setReportItem] = useState(null) // the item the customer clicked
+  const [report, setReport] = useState({ issueType: ISSUE_TYPES[0].value, details: '' })
+  const [reportError, setReportError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [newTicket, setNewTicket] = useState(null) // ticket returned by the backend
 
-  // Search submission
-  const handleSearch = async (e) => {
-    e?.preventDefault()
+  // Confirm a repair form
+  const [confirmCode, setConfirmCode] = useState('')
+  const [confirmMessage, setConfirmMessage] = useState({ type: '', text: '' })
+  const [confirming, setConfirming] = useState(false)
+
+  async function handleSearch(e) {
+    e.preventDefault()
     setError('')
-    setOrder(null)
-
-    if (!phone.trim() || !orderId.trim()) {
-      setError('Please provide both your registered Phone Number and Order ID.')
-      return
-    }
+    if (!/^\d{10}$/.test(phone)) return setError('Enter your 10-digit registered phone number.')
+    if (!code.trim()) return setError('Enter your order code, e.g. OR-1001.')
 
     setLoading(true)
     try {
-      const data = await trackOrder({ phone, orderId })
-      setOrder(data)
+      setOrder(await trackOrder({ phone, code }))
     } catch (err) {
-      setError(err.message || 'No matching order found. Please check your credentials.')
+      setError(err.message) // e.g. "No order found for this phone and order code"
     } finally {
       setLoading(false)
     }
   }
 
-  // Clear lookup
-  const handleClearLookup = () => {
+  // "Check another order" clears everything (the lookup is kept only in page state)
+  function handleClear() {
     setOrder(null)
     setPhone('')
-    setOrderId('')
+    setCode('')
     setError('')
+    setTickets([])
+    setConfirmCode('')
+    setConfirmMessage({ type: '', text: '' })
   }
 
-  // Open problem modal for an equipment item
-  const openReportModal = (item) => {
-    setSelectedEquipment(item)
-    setReportForm({
-      issueType: 'fault_code',
-      faultCode: '',
-      description: '',
-      preferredDate: '',
-    })
-    setTicketSuccessMessage('')
-    setModalOpen(true)
+  function openReport(item) {
+    setReportItem(item)
+    setReport({ issueType: ISSUE_TYPES[0].value, details: '' })
+    setReportError('')
+    setNewTicket(null)
   }
 
-  // Submit problem ticket
-  const handleReportSubmit = async (e) => {
+  async function handleReportSubmit(e) {
     e.preventDefault()
-    if (!selectedEquipment) return
+    if (!report.details.trim()) return setReportError('Please describe the problem.')
 
-    setSubmittingTicket(true)
+    setSubmitting(true)
+    setReportError('')
     try {
-      const res = await reportProblem({
-        phone: order.phone || phone,
-        orderId: order.orderId,
-        serialUnitId: selectedEquipment.serialUnitId,
-        issueType: reportForm.issueType,
-        faultCode: reportForm.faultCode,
-        description: reportForm.description,
-        preferredDate: reportForm.preferredDate,
+      // The backend takes one "issue" text, so we combine the item, type and description
+      const ticket = await reportProblem({
+        phone,
+        orderCode: order.code,
+        issue: `${reportItem.name}: ${report.issueType}. ${report.details.trim()}`,
       })
-
-      // Add newly created ticket to local view
-      setOrder((prev) => ({
-        ...prev,
-        tickets: [
-          {
-            id: res.ticketNo,
-            ticketNo: res.ticketNo,
-            serialUnitId: selectedEquipment.serialUnitId,
-            issue: reportForm.description || `Issue on ${selectedEquipment.product}`,
-            status: 'open',
-            createdAt: new Date().toISOString().slice(0, 10),
-          },
-          ...(prev.tickets || []),
-        ],
-      }))
-
-      setTicketSuccessMessage(`Complaint logged successfully! Ticket #${res.ticketNo} has been assigned to our field service desk.`)
+      setNewTicket(ticket)
+      setTickets((list) => [ticket, ...list])
     } catch (err) {
-      alert(err.message || 'Failed to submit problem ticket')
+      setReportError(err.message)
     } finally {
-      setSubmittingTicket(false)
+      setSubmitting(false)
     }
   }
 
-  // Handle "Yes, it works now" to close the loop
-  const handleConfirmResolvedTicket = async (ticketId) => {
-    setConfirmingTicketId(ticketId)
+  async function handleConfirm(ticketCode) {
+    setConfirming(true)
+    setConfirmMessage({ type: '', text: '' })
     try {
-      await confirmTicket(ticketId)
-      setOrder((prev) => ({
-        ...prev,
-        tickets: prev.tickets.map((t) =>
-          t.id === ticketId || t.ticketNo === ticketId
-            ? { ...t, status: 'confirmed' }
-            : t,
-        ),
-      }))
+      const ticket = await confirmTicket({ phone, code: ticketCode })
+      setConfirmMessage({ type: 'success', text: `Thank you! Ticket ${ticket.code} is now closed.` })
+      setConfirmCode('')
+      // update the ticket if it is in the list, otherwise add it
+      setTickets((list) =>
+        list.some((t) => t.code === ticket.code) ? list.map((t) => (t.code === ticket.code ? ticket : t)) : [ticket, ...list],
+      )
     } catch (err) {
-      alert(err.message || 'Failed to confirm ticket resolution')
+      setConfirmMessage({ type: 'error', text: err.message })
     } finally {
-      setConfirmingTicketId(null)
+      setConfirming(false)
     }
   }
 
-  // Determine current timeline step index
-  const getCurrentStepIndex = () => {
-    if (!order) return -1
-    const idx = ORDER_STEPS.findIndex((s) => s.key === order.status)
-    return idx >= 0 ? idx : 0
-  }
-
-  const currentStepIdx = getCurrentStepIndex()
+  const currentStep = order ? ORDER_STEPS.findIndex((s) => s.key === order.status) : -1
+  const isInstalled = order?.status === 'installed'
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 antialiased selection:bg-primary-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-800 antialiased">
       <Navbar />
 
       <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
-        {/* Page Title Header */}
         <div className="text-center">
           <div className="inline-flex items-center gap-1.5 rounded-full bg-primary-100 px-3 py-1 text-xs font-semibold text-primary-700">
             <ShieldCheck className="h-4 w-4" />
-            <span>Customer Self-Service Portal</span>
+            <span>Customer self-service</span>
           </div>
-          <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
-            Track My Order & Equipment Warranty
-          </h1>
+          <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">Track my order & warranty</h1>
           <p className="mt-2 text-sm text-slate-600">
-            Check live installation milestones, verify serial numbers, check 20-year warranty, or report a service issue.
+            See where your installation is, check the warranty of each item, or report a problem.
           </p>
         </div>
 
-        {/* ========================================================================= */}
-        {/* LOOKUP SEARCH FORM                                                        */}
-        {/* ========================================================================= */}
+        {/* ---------- Lookup form ---------- */}
         {!order && (
-          <div className="mx-auto mt-10 max-w-xl">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-              <h2 className="text-base font-bold text-slate-900">
-                Enter Order Details to Track
-              </h2>
-              <p className="mt-1 text-xs text-slate-500">
-                Found on your quotation, advance receipt, or invoice SMS.
-              </p>
+          <div className="mx-auto mt-10 max-w-xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <h2 className="text-base font-bold text-slate-900">Enter your order details</h2>
+            <p className="mt-1 text-xs text-slate-500">The order code is printed on your quote and invoice.</p>
 
-              {error && (
-                <div className="mt-4 flex items-center gap-2 rounded-lg border border-danger-500/30 bg-danger-50 p-3 text-xs text-danger-700">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
+            {error && (
+              <div className="mt-4 flex items-center gap-2 rounded-lg border border-danger-500/30 bg-danger-50 p-3 text-sm text-danger-700">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
-              <form onSubmit={handleSearch} className="mt-6 space-y-4">
-                <Input
-                  label="Registered Mobile Phone Number"
-                  name="phone"
-                  type="tel"
-                  placeholder="e.g. 9876543210"
-                  icon={Phone}
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  required
-                />
-
-                <Input
-                  label="Order Reference ID"
-                  name="orderId"
-                  placeholder="e.g. SC-1042"
-                  icon={FileText}
-                  value={orderId}
-                  onChange={(e) => setOrderId(e.target.value)}
-                  required
-                />
-
-                <Button
-                  type="submit"
-                  fullWidth
-                  size="lg"
-                  loading={loading}
-                  icon={Search}
-                >
-                  Track Order Progress
-                </Button>
-              </form>
-            </div>
+            <form onSubmit={handleSearch} className="mt-6 space-y-4" noValidate>
+              <Input
+                label="Registered phone number"
+                type="tel"
+                inputMode="numeric"
+                placeholder="e.g. 9815488213"
+                icon={Phone}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                required
+              />
+              <Input
+                label="Order code"
+                placeholder="e.g. OR-1001"
+                icon={FileText}
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                required
+              />
+              <Button type="submit" fullWidth size="lg" loading={loading} icon={Search}>
+                Track order
+              </Button>
+            </form>
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* ORDER DETAILS & TRACKING RESULTS                                          */}
-        {/* ========================================================================= */}
+        {/* ---------- Results ---------- */}
         {order && (
           <div className="mt-8 space-y-8">
-            
-            {/* Top Summary Card */}
+            {/* Summary + timeline */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-5">
                 <div>
                   <div className="flex items-center gap-3">
-                    <h2 className="text-xl font-bold text-slate-900">
-                      Order #{order.orderId}
-                    </h2>
+                    <h2 className="text-xl font-bold text-slate-900">Order {order.code}</h2>
                     <Badge status={order.status} />
                   </div>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Customer: <strong className="text-slate-800">{order.customerName}</strong> · Package:{' '}
-                    <strong className="text-slate-800">{order.kit}</strong>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Customer: <strong className="text-slate-800">{order.customerName}</strong>
+                    {order.installedAt && <> · Installed on {formatDate(order.installedAt)}</>}
                   </p>
                 </div>
-
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  icon={RotateCcw}
-                  onClick={handleClearLookup}
-                >
-                  Check Another Order
+                <Button variant="secondary" size="sm" icon={RotateCcw} onClick={handleClear}>
+                  Check another order
                 </Button>
               </div>
 
-              {/* Financial Snapshot */}
-              <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div className="rounded-xl bg-slate-50 p-4">
-                  <span className="text-xs text-slate-500">Total Order Amount</span>
-                  <p className="mt-1 text-lg font-bold text-slate-900">
-                    {formatCurrency(order.total)}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-emerald-50 p-4">
-                  <span className="text-xs text-emerald-700 font-medium">Amount Paid</span>
-                  <p className="mt-1 text-lg font-bold text-emerald-700">
-                    {formatCurrency(order.paid)}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-slate-50 p-4">
-                  <span className="text-xs text-slate-500">Balance Due</span>
-                  <p className="mt-1 text-lg font-bold text-slate-900">
-                    {formatCurrency(order.balance)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Order Status Timeline */}
-              <div className="mt-8 pt-6 border-t border-slate-100">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Installation Milestones Timeline
-                </h3>
-
-                <div className="mt-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  {ORDER_STEPS.map((step, idx) => {
-                    const isPassed = idx <= currentStepIdx
-                    const isCurrent = idx === currentStepIdx
-                    const StepIcon = step.icon
-
-                    return (
-                      <div key={step.key} className="flex flex-1 items-center">
-                        <div className="flex flex-col items-center">
-                          <div
-                            className={`flex h-10 w-10 items-center justify-center rounded-full transition ${
-                              isCurrent
-                                ? 'bg-primary-600 text-white ring-4 ring-primary-100 shadow-md'
-                                : isPassed
+              <h3 className="mt-6 text-xs font-bold tracking-wider text-slate-500 uppercase">Progress</h3>
+              <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                {ORDER_STEPS.map((step, idx) => {
+                  const done = idx <= currentStep
+                  const current = idx === currentStep
+                  const StepIcon = step.icon
+                  return (
+                    <div key={step.key} className="flex flex-1 items-center">
+                      <div className="flex flex-col items-center">
+                        <div
+                          className={`flex h-10 w-10 items-center justify-center rounded-full ${
+                            current
+                              ? 'bg-primary-600 text-white ring-4 ring-primary-100'
+                              : done
                                 ? 'bg-emerald-500 text-white'
                                 : 'bg-slate-100 text-slate-400'
-                            }`}
-                          >
-                            <StepIcon className="h-5 w-5" />
-                          </div>
-                          <span
-                            className={`mt-2 text-xs font-semibold ${
-                              isCurrent
-                                ? 'text-primary-600'
-                                : isPassed
-                                ? 'text-slate-900'
-                                : 'text-slate-400'
-                            }`}
-                          >
-                            {step.label}
-                          </span>
+                          }`}
+                        >
+                          <StepIcon className="h-5 w-5" />
                         </div>
-
-                        {idx < ORDER_STEPS.length - 1 && (
-                          <div
-                            className={`hidden h-0.5 flex-1 md:block mx-2 ${
-                              idx < currentStepIdx ? 'bg-emerald-500' : 'bg-slate-200'
-                            }`}
-                          />
-                        )}
+                        <span
+                          className={`mt-2 text-xs font-semibold ${
+                            current ? 'text-primary-600' : done ? 'text-slate-900' : 'text-slate-400'
+                          }`}
+                        >
+                          {step.label}
+                        </span>
                       </div>
-                    )
-                  })}
-                </div>
+                      {idx < ORDER_STEPS.length - 1 && (
+                        <div className={`mx-2 hidden h-0.5 flex-1 md:block ${idx < currentStep ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
-            {/* Installed Equipment & Serial Tracking */}
+            {/* Equipment + warranty */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">
-                    Installed Equipment & Serial Tracking
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Serial numbers scanned at dispatch with real-time warranty validation.
-                  </p>
-                </div>
+              <div className="border-b border-slate-100 pb-4">
+                <h3 className="text-base font-bold text-slate-900">Your equipment & warranty</h3>
+                <p className="text-xs text-slate-500">
+                  {isInstalled
+                    ? 'Warranty started on the installation date.'
+                    : 'Warranty starts on the day your system is installed.'}
+                </p>
               </div>
 
               <div className="mt-5 divide-y divide-slate-100">
-                {order.equipment?.map((item) => (
-                  <div
-                    key={item.serialUnitId}
-                    className="flex flex-wrap items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
-                  >
+                {order.items.map((item) => (
+                  <div key={item.name} className="flex flex-wrap items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
                     <div>
-                      <h4 className="text-sm font-bold text-slate-900">{item.product}</h4>
-                      <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                        <span>
-                          Serial Number:{' '}
-                          <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-slate-700">
-                            {item.serialMasked}
-                          </code>
-                        </span>
-                        <span>Warranty Ends: {formatDate(item.warrantyEnd)}</span>
-                      </div>
+                      <h4 className="text-sm font-bold text-slate-900">
+                        {item.name} <span className="font-normal text-slate-500">× {item.qty}</span>
+                      </h4>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {item.warrantyYears}-year warranty
+                        {item.warrantyEnd && <> · ends {formatDate(item.warrantyEnd)}</>}
+                      </p>
                     </div>
 
                     <div className="flex items-center gap-3">
-                      {item.underWarranty ? (
+                      {!item.warrantyEnd ? (
+                        <Badge tone="gray">Starts at installation</Badge>
+                      ) : isUnderWarranty(item) ? (
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-500/20">
-                          <Check className="h-3.5 w-3.5" /> Under Warranty
+                          <Check className="h-3.5 w-3.5" /> Under warranty
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 rounded-full bg-danger-50 px-2.5 py-1 text-xs font-medium text-danger-700 ring-1 ring-danger-500/20">
@@ -396,178 +294,127 @@ export default function TrackOrder() {
                         </span>
                       )}
 
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        icon={Wrench}
-                        onClick={() => openReportModal(item)}
-                      >
-                        Report a Problem
-                      </Button>
+                      {/* Complaints can only be raised after installation (backend rule) */}
+                      {isInstalled && (
+                        <Button variant="secondary" size="sm" icon={Wrench} onClick={() => openReport(item)}>
+                          Report a problem
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* My Service Complaints / Tickets */}
+            {/* Tickets + confirm a repair */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="border-b border-slate-100 pb-4">
-                <h3 className="text-base font-bold text-slate-900">Service Tickets</h3>
+                <h3 className="text-base font-bold text-slate-900">Service tickets</h3>
                 <p className="text-xs text-slate-500">
-                  Track repairs, technician dispatches, and confirm service completion.
+                  Did our technician fix your problem? Enter the ticket number to confirm it works.
                 </p>
               </div>
 
-              {order.tickets && order.tickets.length > 0 ? (
+              {tickets.length > 0 && (
                 <div className="mt-4 divide-y divide-slate-100">
-                  {order.tickets.map((t) => (
-                    <div
-                      key={t.id || t.ticketNo}
-                      className="flex flex-wrap items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
-                    >
+                  {tickets.map((t) => (
+                    <div key={t.code} className="flex flex-wrap items-center justify-between gap-4 py-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm font-bold text-slate-900">
-                            #{t.ticketNo}
-                          </span>
+                          <span className="font-mono text-sm font-bold text-slate-900">{t.code}</span>
                           <Badge status={t.status} />
                         </div>
                         <p className="mt-1 text-xs text-slate-600">{t.issue}</p>
                       </div>
-
-                      <div>
-                        {t.status === 'resolved' && (
-                          <Button
-                            size="sm"
-                            icon={Check}
-                            loading={confirmingTicketId === (t.id || t.ticketNo)}
-                            onClick={() => handleConfirmResolvedTicket(t.id || t.ticketNo)}
-                            className="bg-emerald-600 hover:bg-emerald-700"
-                          >
-                            Yes, it works now!
-                          </Button>
-                        )}
-                        {t.status === 'confirmed' && (
-                          <span className="text-xs font-semibold text-emerald-600 flex items-center gap-1">
-                            <CheckCircle2 className="h-4 w-4" /> Issue Closed & Confirmed
-                          </span>
-                        )}
-                        {(t.status === 'open' || t.status === 'assigned') && (
-                          <span className="text-xs text-slate-400">
-                            In progress with service technician
-                          </span>
-                        )}
-                      </div>
+                      <span className="text-xs text-slate-500">
+                        {t.underWarranty ? 'Free (under warranty)' : `Charge: ${formatCurrency(t.billAmount)}`}
+                      </span>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="mt-4 text-xs text-slate-500">
-                  No service tickets reported for this order. System is running healthy!
+              )}
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (confirmCode.trim()) handleConfirm(confirmCode)
+                }}
+                className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end"
+              >
+                <Input
+                  className="sm:max-w-xs sm:flex-1"
+                  label="Ticket number"
+                  placeholder="e.g. TK-1001"
+                  value={confirmCode}
+                  onChange={(e) => setConfirmCode(e.target.value)}
+                />
+                <Button type="submit" icon={Check} loading={confirming} disabled={!confirmCode.trim()}>
+                  Yes, it works now
+                </Button>
+              </form>
+              {confirmMessage.text && (
+                <p className={`mt-3 text-sm ${confirmMessage.type === 'success' ? 'text-emerald-700' : 'text-danger-700'}`}>
+                  {confirmMessage.text}
                 </p>
               )}
             </div>
-
           </div>
         )}
       </main>
 
-      {/* ========================================================================= */}
-      {/* REPORT A PROBLEM MODAL (B3)                                               */}
-      {/* ========================================================================= */}
+      {/* ---------- Report a problem pop-up ---------- */}
       <Modal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="Report an Equipment Problem"
-        description={selectedEquipment ? `Equipment: ${selectedEquipment.product} (${selectedEquipment.serialMasked})` : ''}
+        open={Boolean(reportItem)}
+        onClose={() => setReportItem(null)}
+        title="Report a problem"
+        description={reportItem ? `${reportItem.name} · order ${order?.code}` : ''}
       >
-        {ticketSuccessMessage ? (
+        {newTicket ? (
           <div className="py-6 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-              <CheckCircle2 className="h-8 w-8" />
-            </div>
-            <p className="mt-3 text-sm font-bold text-slate-900">{ticketSuccessMessage}</p>
-            <div className="mt-6">
-              <Button onClick={() => setModalOpen(false)}>Done</Button>
-            </div>
+            <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600" />
+            <p className="mt-3 text-sm font-bold text-slate-900">Complaint registered. Your ticket number is {newTicket.code}.</p>
+            <p className="mt-1 text-sm text-slate-600">
+              {newTicket.underWarranty
+                ? 'Your system is under warranty, so this repair is free.'
+                : `Your warranty has ended, so a repair charge of ${formatCurrency(newTicket.billAmount)} applies.`}
+            </p>
+            <Button className="mt-6" onClick={() => setReportItem(null)}>
+              Done
+            </Button>
           </div>
         ) : (
-          <form onSubmit={handleReportSubmit} className="space-y-4">
-            {selectedEquipment && (
-              <div className="rounded-lg bg-slate-50 p-3 text-xs">
-                <span className="text-slate-500">Warranty Status: </span>
-                {selectedEquipment.underWarranty ? (
-                  <span className="font-bold text-emerald-700">
-                    Covered Under 20-Year Guarantee (Zero Repair Cost)
-                  </span>
+          <form onSubmit={handleReportSubmit} className="space-y-4" noValidate>
+            {reportError && <p className="rounded-lg bg-danger-50 px-3 py-2 text-sm text-danger-700">{reportError}</p>}
+            {reportItem && (
+              <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+                Warranty:{' '}
+                {isUnderWarranty(reportItem) ? (
+                  <b className="text-emerald-700">covered, the repair is free</b>
                 ) : (
-                  <span className="font-bold text-danger-700">
-                    Expired (Parts & Labour will be quoted)
-                  </span>
+                  <b className="text-danger-700">expired, a repair charge applies</b>
                 )}
-              </div>
+              </p>
             )}
-
             <Select
-              label="Issue Category"
-              name="issueType"
-              value={reportForm.issueType}
-              onChange={(e) =>
-                setReportForm((prev) => ({ ...prev, issueType: e.target.value }))
-              }
-              options={[
-                { value: 'fault_code', label: 'Fault Code on Inverter (e.g. E07)' },
-                { value: 'no_power', label: 'Zero Power / Total Blackout' },
-                { value: 'low_generation', label: 'Low Generation / Reduced Output' },
-                { value: 'physical_damage', label: 'Physical Damage (Panel/Stand/Wire)' },
-                { value: 'other', label: 'Other Operational Issue' },
-              ]}
-              required
+              label="What is wrong?"
+              value={report.issueType}
+              onChange={(e) => setReport({ ...report, issueType: e.target.value })}
+              options={ISSUE_TYPES}
             />
-
-            {reportForm.issueType === 'fault_code' && (
-              <Input
-                label="Fault Code Displayed on Screen (Optional)"
-                placeholder="e.g. E07 or F02"
-                value={reportForm.faultCode}
-                onChange={(e) =>
-                  setReportForm((prev) => ({ ...prev, faultCode: e.target.value }))
-                }
-              />
-            )}
-
             <Textarea
-              label="Describe the Problem"
-              placeholder="e.g. Inverter screen turned red with zero generation since morning rain..."
+              label="Describe the problem"
+              placeholder="e.g. Inverter screen shows E07 and no power since this morning"
               rows={3}
-              value={reportForm.description}
-              onChange={(e) =>
-                setReportForm((prev) => ({ ...prev, description: e.target.value }))
-              }
+              value={report.details}
+              onChange={(e) => setReport({ ...report, details: e.target.value })}
               required
             />
-
-            <Input
-              label="Preferred Visit Date (Optional)"
-              type="date"
-              icon={Calendar}
-              value={reportForm.preferredDate}
-              onChange={(e) =>
-                setReportForm((prev) => ({ ...prev, preferredDate: e.target.value }))
-              }
-            />
-
-            <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-100">
-              <Button
-                variant="secondary"
-                type="button"
-                onClick={() => setModalOpen(false)}
-              >
+            <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
+              <Button variant="secondary" onClick={() => setReportItem(null)}>
                 Cancel
               </Button>
-              <Button type="submit" loading={submittingTicket}>
-                Submit Complaint
+              <Button type="submit" loading={submitting}>
+                Submit complaint
               </Button>
             </div>
           </form>

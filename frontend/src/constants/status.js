@@ -24,12 +24,13 @@ export const ROLE_LABELS = {
   technician: 'Technician',
 }
 
-// Real status names, matching the backend exactly (do not invent new ones):
+// Status names, exactly as the backend models use them:
 //   Enquiry: new -> follow_up -> converted / lost
-//   Survey:  pending -> approved / rejected
-//   Order:   quoted -> confirmed -> packed -> dispatched -> delivered -> installed
-//   Ticket:  open -> assigned -> resolved -> confirmed
+//   Survey:  pending -> approved / rejected (survey must be approved before an enquiry converts)
+//   Order:   quoted -> confirmed -> packed -> dispatched -> delivered -> installed (only the next step is allowed)
+//   Ticket:  open -> assigned -> resolved -> confirmed (customer confirms the repair works)
 export const ENQUIRY_STATUSES = ['new', 'follow_up', 'converted', 'lost']
+export const SURVEY_STATUSES = ['pending', 'approved', 'rejected']
 export const ORDER_STATUSES = ['quoted', 'confirmed', 'packed', 'dispatched', 'delivered', 'installed']
 export const TICKET_STATUSES = ['open', 'assigned', 'resolved', 'confirmed']
 
@@ -51,10 +52,16 @@ export const STATUS_COLORS = {
   dispatched: 'orange',
   delivered: 'green',
   installed: 'green',
-  // Ticket
+  // Ticket (confirmed is shared with Order above)
   open: 'red',
   assigned: 'blue',
   resolved: 'green',
+  // Used only by the Operations / Technician mock screens
+  in_stock: 'green',
+  scheduled: 'blue',
+  in_progress: 'amber',
+  completed: 'green',
+  closed: 'gray',
 }
 
 // Colour name -> Tailwind classes (full strings so Tailwind can find them)
