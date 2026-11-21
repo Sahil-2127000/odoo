@@ -5,6 +5,7 @@ import { http, toQuery, unwrap } from './http'
 const USE_MOCK = true
 
 export const TECHNICIAN_STATUSES = ['available', 'on_job', 'leave']
+export const TECHNICIAN_SKILLS = ['panel_mounting', 'electrical', 'inverter', 'battery', 'earthing']
 
 // params: { q, status }
 export async function getTechnicians(params = {}) {
@@ -17,6 +18,7 @@ export async function getTechnicians(params = {}) {
 
 export async function createTechnician(payload) {
   if (!USE_MOCK) return http('POST', '/technicians', payload)
+  if (db.technicians.some((t) => t.phone === payload.phone)) return unwrap(await reject('A technician with this phone already exists'))
   const tech = { status: 'available', skills: [], isActive: true, ...payload, _id: nextId('tec', db.technicians), createdAt: now(), updatedAt: now() }
   db.technicians.push(tech)
   return unwrap(await respond(tech, 'Technician added'))
