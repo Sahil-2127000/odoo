@@ -1,13 +1,12 @@
-// Pages under /tech (shown inside TechLayout, the mobile layout). Owner: Frontend 3.
-// Replace the ComingSoon placeholders with your pages from src/pages/tech/.
+// Pages under /tech (shown inside TechLayout, the mobile layout). Owner: Technician (Rakhi).
 import { Route } from 'react-router-dom'
-import ComingSoon from '@/pages/common/ComingSoon'
+import MyInstallations from '@/pages/tech/MyInstallations'
+import MyComplaints from '@/pages/tech/MyComplaints'
 
 const techRoutes = (
   <>
-    <Route index element={<ComingSoon title="My jobs today" />} />
-    <Route path="jobs/:id" element={<ComingSoon title="Job details" />} />
-    <Route path="tickets/:id" element={<ComingSoon title="Repair ticket" />} />
+    <Route index element={<MyInstallations />} />
+    <Route path="complaints" element={<MyComplaints />} />
   </>
 )
 
