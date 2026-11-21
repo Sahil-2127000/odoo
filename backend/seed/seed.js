@@ -14,7 +14,7 @@ const daysAgo = (n) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
 
 const seed = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URL);
+    await mongoose.connect(process.env.MONGO_URI);
     console.log("DB connected, clearing old data...");
 
     // 1. clear old data
