@@ -11,7 +11,7 @@ const {
   toggleUserStatus,
 } = require("../controllers/auth.controller");
 
-const { auth, isAdmin } = require("../middlewares/auth.middleware");
+const { auth, isAdmin , isCustomerCare } = require("../middlewares/auth.middleware");
 
 // public
 router.post("/signup", signup);
@@ -23,7 +23,7 @@ router.post("/logout", auth, logout);
 
 // admin only
 router.post("/staff", auth, isAdmin, createStaff);
-router.get("/users", auth, isAdmin, getAllUsers);
+router.get("/users", auth, isCustomerCare , getAllUsers);
 router.patch("/users/:id/status", auth, isAdmin, toggleUserStatus);
 
 module.exports = router;
