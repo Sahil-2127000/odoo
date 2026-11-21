@@ -11,6 +11,7 @@ import techRoutes from '@/routes/techRoutes'
 import Login from '@/pages/auth/Login'
 import LandingPage from '@/pages/public/LandingPage'
 import TrackOrder from '@/pages/public/TrackOrder'
+import InvoicePrint from '@/pages/admin/InvoicePrint'
 import NotFound from '@/pages/common/NotFound'
 import { ROLES } from '@/constants/status'
 
@@ -28,6 +29,11 @@ export default function App() {
             {/* Admin (Director) */}
             <Route element={<ProtectedRoute roles={[ROLES.ADMIN]} />}>
               <Route path="/admin" element={<DashboardLayout />}>{adminRoutes}</Route>
+            </Route>
+
+            {/* Printable invoice, full page without the sidebar (Admin and Sales) */}
+            <Route element={<ProtectedRoute roles={[ROLES.ADMIN, ROLES.SALES]} />}>
+              <Route path="/invoice/:type/:id" element={<InvoicePrint />} />
             </Route>
 
             {/* Sales / customer care */}
