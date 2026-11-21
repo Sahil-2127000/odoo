@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useToast } from '@/components/ui'
 import PageShell from './PageShell'
 import { Button, Table, Badge, Modal, Input, Select, Card } from './ui'
-import { quotationsApi } from '@/api/sales'
+import { quotationsApi, isGlobalMockEnabled } from '@/api/sales'
 import { formatCurrency, formatDate, listFrom, systemTypeLabel } from './salesHelpers'
 
 const STATUS_OPTIONS = [
@@ -18,6 +18,8 @@ const STATUS_OPTIONS = [
 export default function QuotationsPage() {
   const navigate = useNavigate()
   const toast = useToast()
+  // Real backend: quotes are open until accepted (no draft/sent/rejected, no editing).
+  const live = !isGlobalMockEnabled()
   const [quotes, setQuotes] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -137,7 +139,7 @@ export default function QuotationsPage() {
             {open && (
               <>
                 <Button size="sm" variant="success" disabled={busy} onClick={() => setAcceptTarget(row)}>Accept</Button>
-                <Button
+                {!live && <Button
                   size="sm"
                   variant="ghost"
                   className="text-rose-600"
@@ -145,7 +147,7 @@ export default function QuotationsPage() {
                   onClick={() => runAction(row.id, () => quotationsApi.updateQuotation(row.id, { status: 'rejected' }), 'Quotation marked as rejected')}
                 >
                   Reject
-                </Button>
+                </Button>}
               </>
             )}
             <Button size="sm" variant="secondary" onClick={() => navigate(`/sales/quotations/${row.id}/print`)}>Print</Button>

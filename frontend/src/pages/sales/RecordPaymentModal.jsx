@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useToast } from '@/components/ui'
 import { Button, Modal, Input, Select } from './ui'
-import { paymentsApi } from '@/api/sales'
+import { paymentsApi, isGlobalMockEnabled } from '@/api/sales'
 import { PAYMENT_MODES, formatCurrency } from './salesHelpers'
 
 const today = () => new Date().toISOString().slice(0, 10)
@@ -16,6 +16,8 @@ export default function RecordPaymentModal({ isOpen, onClose, order, orders = []
   const [form, setForm] = useState({})
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
+  // Real backend stores only the amount paid, not the mode / reference / date.
+  const live = !isGlobalMockEnabled()
 
   const payable = orders.filter((o) => (o.balanceAmount || 0) > 0)
   const selected = order || payable.find((o) => o.id === form.orderId)
@@ -47,7 +49,7 @@ export default function RecordPaymentModal({ isOpen, onClose, order, orders = []
     if (!selected) e.orderId = 'Choose an order'
     if (!(amount > 0)) e.amount = 'Enter an amount greater than zero'
     else if (selected && amount > selected.balanceAmount) e.amount = `Cannot exceed the balance of ${formatCurrency(selected.balanceAmount)}`
-    if (form.mode !== 'cash' && !form.reference?.trim()) e.reference = 'Enter the UTR / cheque / transaction number'
+    if (!live && form.mode !== 'cash' && !form.reference?.trim()) e.reference = 'Enter the UTR / cheque / transaction number'
     if (!form.date) e.date = 'Choose the payment date'
     setErrors(e)
     if (Object.keys(e).length) return
@@ -85,6 +87,11 @@ export default function RecordPaymentModal({ isOpen, onClose, order, orders = []
       }
     >
       <div className="space-y-4">
+        {live && (
+          <p className="rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-700">
+            The backend records the amount only. Mode, reference and notes are not saved yet.
+          </p>
+        )}
         {!order && (
           <Select
             label="Order"
@@ -111,7 +118,7 @@ export default function RecordPaymentModal({ isOpen, onClose, order, orders = []
           <Input
             label="Reference no."
             name="reference"
-            required={form.mode !== 'cash'}
+            required={!live && form.mode !== 'cash'}
             placeholder={form.mode === 'upi' ? 'UPI transaction ID' : form.mode === 'cheque' ? 'Cheque number' : 'UTR / NEFT reference'}
             value={form.reference}
             onChange={(e) => set('reference', e.target.value)}

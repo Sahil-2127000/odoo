@@ -28,5 +28,11 @@ export function computeTotals(lines, gstRate = DEFAULT_GST_RATE, discount = 0) {
   return { subtotal, gstAmount, grandTotal }
 }
 
+/** Throw when an API envelope reports failure, so callers' catch blocks show the backend message. */
+export function ensureOk(res) {
+  if (res?.success === false) throw new Error(res.message || 'Request failed')
+  return res
+}
+
 /** Read a list from an API envelope ({ success, data }), tolerating a bare array. */
 export const listFrom = (res) => (Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [])

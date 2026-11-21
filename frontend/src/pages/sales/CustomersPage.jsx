@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PageShell from './PageShell';
 import { Button, Table, Modal, Input, Card } from './ui';
 import { customersApi, surveysApi } from '../../api/sales';
+import { ensureOk } from './salesHelpers';
 import { mockUsers } from '../../mocks/sales/users';
 
 export const CustomersPage = () => {
@@ -76,7 +77,7 @@ export const CustomersPage = () => {
 
     setSubmitting(true);
     try {
-      await customersApi.createCustomer(formData);
+      ensureOk(await customersApi.createCustomer(formData));
       setIsAddModalOpen(false);
       await loadCustomers();
     } catch (err) {
@@ -90,12 +91,12 @@ export const CustomersPage = () => {
     e.preventDefault();
     if (!surveyModalCustomer) return;
     try {
-      await surveysApi.scheduleSurvey({
+      ensureOk(await surveysApi.scheduleSurvey({
         customerId: surveyModalCustomer.id,
         scheduledDate: surveyDate || new Date(Date.now() + 86400000).toISOString(),
         surveyorId,
         notes: surveyNotes,
-      });
+      }));
       alert(`Survey scheduled successfully for ${surveyModalCustomer.name}`);
       setSurveyModalCustomer(null);
       await loadCustomers();

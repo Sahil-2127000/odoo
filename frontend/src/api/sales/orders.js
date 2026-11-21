@@ -1,32 +1,7 @@
-import http, { isGlobalMockEnabled } from './http';
+// Orders: mock DB, or backend orders past "quoted" (/api/v1/orders).
+import { isGlobalMockEnabled as mock } from './http';
 import mockDb from '../../mocks/sales/mockDb';
+import * as live from './backend';
 
-export let USE_MOCK = true;
-
-export const setUseMock = (useMock) => {
-  USE_MOCK = Boolean(useMock);
-};
-
-const shouldMock = () => USE_MOCK || isGlobalMockEnabled();
-
-export const getOrders = async (filters = {}) => {
-  if (shouldMock()) {
-    return Promise.resolve(mockDb.getOrders(filters));
-  }
-  const query = new URLSearchParams(filters).toString();
-  return http.get(`/sales/orders${query ? `?${query}` : ''}`);
-};
-
-export const getOrderById = async (id) => {
-  if (shouldMock()) {
-    return Promise.resolve(mockDb.getOrderById(id));
-  }
-  return http.get(`/sales/orders/${id}`);
-};
-
-export default {
-  USE_MOCK,
-  setUseMock,
-  getOrders,
-  getOrderById,
-};
+export const getOrders = async (filters = {}) => (mock() ? mockDb.getOrders(filters) : live.getOrders(filters));
+export const getOrderById = async (id) => (mock() ? mockDb.getOrderById(id) : live.getOrderById(id));

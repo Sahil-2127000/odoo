@@ -6,4 +6,5 @@ export * as ordersApi from './orders';
 export * as paymentsApi from './payments';
 export * as productsApi from './products';
 export * as overviewApi from './overview';
-export { default as http, isGlobalMockEnabled, setGlobalMockEnabled } from './http';
+export * as kitsApi from './kits';
+export { isGlobalMockEnabled, setGlobalMockEnabled, isMockSession } from './http';

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PageShell from './PageShell';
 import { Button, Card, Tabs, Badge, Modal, Input, Select } from './ui';
 import { customersApi, surveysApi, quotationsApi } from '../../api/sales';
+import { ensureOk } from './salesHelpers';
 import { mockUsers } from '../../mocks/sales/users';
 
 export const CustomerDetailPage = ({ customerId: propCustomerId }) => {
@@ -62,12 +63,12 @@ export const CustomerDetailPage = ({ customerId: propCustomerId }) => {
   const handleScheduleSurvey = async (e) => {
     e.preventDefault();
     try {
-      await surveysApi.scheduleSurvey({
+      ensureOk(await surveysApi.scheduleSurvey({
         customerId: customer.id,
         scheduledDate: surveyFormData.scheduledDate || new Date(Date.now() + 86400000).toISOString(),
         surveyorId: surveyFormData.surveyorId,
         notes: surveyFormData.notes,
-      });
+      }));
       setIsSurveyModalOpen(false);
       await loadCustomerData();
       setActiveTab('surveys');
@@ -93,7 +94,7 @@ export const CustomerDetailPage = ({ customerId: propCustomerId }) => {
     if (!completingSurvey) return;
 
     try {
-      await surveysApi.completeSurvey(completingSurvey.id, completionData);
+      ensureOk(await surveysApi.completeSurvey(completingSurvey.id, completionData));
       setCompletingSurvey(null);
       await loadCustomerData();
     } catch (err) {
@@ -106,7 +107,7 @@ export const CustomerDetailPage = ({ customerId: propCustomerId }) => {
       return;
     }
     try {
-      const res = await quotationsApi.acceptQuotation(quoteId);
+      const res = ensureOk(await quotationsApi.acceptQuotation(quoteId));
       if (res.success) {
         alert(res.message);
         await loadCustomerData();

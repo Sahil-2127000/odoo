@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import PageShell from './PageShell';
 import { Button, Table, Badge, Modal, Input, Select, Card } from './ui';
 import { leadsApi } from '../../api/sales';
+import { ensureOk } from './salesHelpers';
 import { mockUsers } from '../../mocks/sales/users';
 
 const STATUS_OPTIONS = [
@@ -161,9 +162,9 @@ export const LeadsPage = () => {
       };
 
       if (editingLead) {
-        await leadsApi.updateLead(editingLead.id, payload);
+        ensureOk(await leadsApi.updateLead(editingLead.id, payload));
       } else {
-        await leadsApi.createLead(payload);
+        ensureOk(await leadsApi.createLead(payload));
       }
 
       setIsModalOpen(false);
@@ -178,10 +179,12 @@ export const LeadsPage = () => {
 
   const handleStatusChange = async (leadId, newStatus) => {
     try {
-      await leadsApi.updateLeadStatus(leadId, newStatus);
+      ensureOk(await leadsApi.updateLeadStatus(leadId, newStatus));
       await loadLeads();
     } catch (err) {
       console.error('Failed to change status:', err);
+      alert(`Could not change status: ${err.message}`);
+      await loadLeads();
     }
   };
 
@@ -196,7 +199,7 @@ export const LeadsPage = () => {
     }
 
     try {
-      const res = await leadsApi.convertLead(lead.id);
+      const res = ensureOk(await leadsApi.convertLead(lead.id, { email: lead.email, address: lead.address }));
       if (res.success && res.data) {
         await loadLeads();
         setConversionModal({

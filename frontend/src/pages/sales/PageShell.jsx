@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { RotateCcw } from 'lucide-react'
 import { PageHeader, useToast } from '@/components/ui'
-import { isGlobalMockEnabled, setGlobalMockEnabled } from '@/api/sales/http'
+import { isGlobalMockEnabled, isMockSession, setGlobalMockEnabled } from '@/api/sales/http'
 import mockDb from '@/mocks/sales/mockDb'
 
 export default function PageShell({ title, subtitle, actions, breadcrumbs = [], children }) {
@@ -17,11 +17,17 @@ export default function PageShell({ title, subtitle, actions, breadcrumbs = [], 
     return () => window.removeEventListener('sales_mock_toggle', onToggle)
   }, [])
 
+  const mockSession = isMockSession()
+
   const toggleMock = () => {
+    if (mockSession) {
+      toast.error('You are logged in with a demo account. Log in with a real backend account to use live data.')
+      return
+    }
     const next = !isMock
-    setIsMock(next)
     setGlobalMockEnabled(next)
-    toast.success(`API mode: ${next ? 'Mock data' : 'Real backend'}`)
+    // Reload so every page refetches from the newly selected source.
+    window.location.reload()
   }
 
   const resetData = () => {
@@ -36,7 +42,7 @@ export default function PageShell({ title, subtitle, actions, breadcrumbs = [], 
       <button
         type="button"
         onClick={toggleMock}
-        title="Toggle between Mock and Real API"
+        title={mockSession ? 'Demo login: live data needs a real backend login' : 'Switch between mock data and the real backend'}
         className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${
           isMock
             ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100'

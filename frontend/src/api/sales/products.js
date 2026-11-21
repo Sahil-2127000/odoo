@@ -1,23 +1,6 @@
-import http, { isGlobalMockEnabled } from './http';
+// Product catalogue: mock DB, or backend /api/v1/products (sellPrice → unitPrice).
+import { isGlobalMockEnabled as mock } from './http';
 import mockDb from '../../mocks/sales/mockDb';
+import * as live from './backend';
 
-export let USE_MOCK = true;
-
-export const setUseMock = (useMock) => {
-  USE_MOCK = Boolean(useMock);
-};
-
-const shouldMock = () => USE_MOCK || isGlobalMockEnabled();
-
-export const getProducts = async () => {
-  if (shouldMock()) {
-    return Promise.resolve(mockDb.getProducts());
-  }
-  return http.get('/sales/products');
-};
-
-export default {
-  USE_MOCK,
-  setUseMock,
-  getProducts,
-};
+export const getProducts = async () => (mock() ? mockDb.getProducts() : live.getProducts());

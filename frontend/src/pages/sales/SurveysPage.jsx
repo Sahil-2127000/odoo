@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import PageShell from './PageShell';
 import { Button, Table, Badge, Modal, Input, Select, Card } from './ui';
-import { surveysApi, customersApi } from '../../api/sales';
+import { surveysApi, customersApi, leadsApi, isGlobalMockEnabled } from '../../api/sales';
+import { ensureOk } from './salesHelpers';
 import { mockUsers } from '../../mocks/sales/users';
 
 export const SurveysPage = () => {
@@ -35,16 +36,20 @@ export const SurveysPage = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const surveyors = mockUsers.filter(u => u.role === 'surveyor');
+  // Real backend: surveys belong to enquiries (leads) and happen before conversion to a customer.
+  const live = !isGlobalMockEnabled();
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [surveysRes, customersRes] = await Promise.all([
+      const [surveysRes, peopleRes] = await Promise.all([
         surveysApi.getSurveys({ search, status: statusFilter, surveyorId: surveyorFilter }),
-        customersApi.getCustomers(),
+        live ? leadsApi.getLeads() : customersApi.getCustomers(),
       ]);
       if (surveysRes.success) setSurveys(surveysRes.data);
-      if (customersRes.success) setCustomers(customersRes.data);
+      if (peopleRes.success) {
+        setCustomers(live ? peopleRes.data.filter(l => !['converted', 'lost'].includes(l.status)) : peopleRes.data);
+      }
     } catch (err) {
       console.error('Failed to load surveys:', err);
     } finally {
@@ -76,7 +81,7 @@ export const SurveysPage = () => {
 
     setSubmitting(true);
     try {
-      await surveysApi.scheduleSurvey(scheduleData);
+      ensureOk(await surveysApi.scheduleSurvey(scheduleData));
       setIsScheduleOpen(false);
       await loadData();
     } catch (err) {
@@ -104,7 +109,7 @@ export const SurveysPage = () => {
 
     setSubmitting(true);
     try {
-      await surveysApi.completeSurvey(completingSurvey.id, completionData);
+      ensureOk(await surveysApi.completeSurvey(completingSurvey.id, completionData));
       setCompletingSurvey(null);
       await loadData();
     } catch (err) {
@@ -121,7 +126,7 @@ export const SurveysPage = () => {
       render: (_, row) => (
         <div>
           <a
-            href={`/sales/customers/${row.customerId}`}
+            href={row.customerId ? `/sales/customers/${row.customerId}` : '/sales/leads'}
             className="font-semibold text-slate-900 hover:text-amber-600 transition-colors block"
           >
             {row.customerName}
@@ -202,6 +207,14 @@ export const SurveysPage = () => {
               >
                 Mark Complete
               </Button>
+            ) : !row.customerId ? (
+              <a
+                href="/sales/leads"
+                title="Approved survey: convert this lead to a customer before quoting"
+                className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+              >
+                Convert lead →
+              </a>
             ) : (
               <a
                 href={`/sales/quotations/new?customerId=${row.customerId}&surveyId=${row.id}&recommendedKw=${row.recommendedKw || 3}`}
@@ -289,7 +302,7 @@ export const SurveysPage = () => {
       >
         <form onSubmit={handleScheduleSubmit} className="space-y-4">
           <Select
-            label="Select Customer"
+            label={live ? 'Select Lead' : 'Select Customer'}
             required
             value={scheduleData.customerId}
             onChange={(e) => {

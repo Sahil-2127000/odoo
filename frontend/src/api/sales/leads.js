@@ -1,68 +1,12 @@
-import http, { isGlobalMockEnabled } from './http';
+// Leads: mock DB or backend enquiries (/api/v1/enquiries), chosen by the Sales mode switch.
+import { isGlobalMockEnabled as mock } from './http';
 import mockDb from '../../mocks/sales/mockDb';
+import * as live from './backend';
 
-/**
- * Module-level mock switch
- * Can be overridden per module or globally via localStorage
- */
-export let USE_MOCK = true;
-
-export const setUseMock = (useMock) => {
-  USE_MOCK = Boolean(useMock);
-};
-
-const shouldMock = () => USE_MOCK || isGlobalMockEnabled();
-
-export const getLeads = async (filters = {}) => {
-  if (shouldMock()) {
-    return Promise.resolve(mockDb.getLeads(filters));
-  }
-  const query = new URLSearchParams(filters).toString();
-  return http.get(`/sales/leads${query ? `?${query}` : ''}`);
-};
-
-export const getLeadById = async (id) => {
-  if (shouldMock()) {
-    return Promise.resolve(mockDb.getLeadById(id));
-  }
-  return http.get(`/sales/leads/${id}`);
-};
-
-export const createLead = async (leadData) => {
-  if (shouldMock()) {
-    return Promise.resolve(mockDb.createLead(leadData));
-  }
-  return http.post('/sales/leads', leadData);
-};
-
-export const updateLead = async (id, updates) => {
-  if (shouldMock()) {
-    return Promise.resolve(mockDb.updateLead(id, updates));
-  }
-  return http.put(`/sales/leads/${id}`, updates);
-};
-
-export const updateLeadStatus = async (id, status) => {
-  if (shouldMock()) {
-    return Promise.resolve(mockDb.updateLeadStatus(id, status));
-  }
-  return http.patch(`/sales/leads/${id}/status`, { status });
-};
-
-export const convertLead = async (id) => {
-  if (shouldMock()) {
-    return Promise.resolve(mockDb.convertLead(id));
-  }
-  return http.post(`/sales/leads/${id}/convert`, {});
-};
-
-export default {
-  USE_MOCK,
-  setUseMock,
-  getLeads,
-  getLeadById,
-  createLead,
-  updateLead,
-  updateLeadStatus,
-  convertLead,
-};
+export const getLeads = async (filters = {}) => (mock() ? mockDb.getLeads(filters) : live.getLeads(filters));
+export const getLeadById = async (id) => (mock() ? mockDb.getLeadById(id) : live.getLeadById(id));
+export const createLead = async (data) => (mock() ? mockDb.createLead(data) : live.createLead(data));
+export const updateLead = async (id, updates) => (mock() ? mockDb.updateLead(id, updates) : live.updateLead(id, updates));
+export const updateLeadStatus = async (id, status) =>
+  mock() ? mockDb.updateLeadStatus(id, status) : live.updateLeadStatus(id, status);
+export const convertLead = async (id, details) => (mock() ? mockDb.convertLead(id) : live.convertLead(id, details));

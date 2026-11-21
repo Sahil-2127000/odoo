@@ -5,9 +5,11 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useToast } from '@/components/ui'
 import PageShell from './PageShell'
 import { Button, Card, Input, Select, Badge } from './ui'
-import { customersApi, surveysApi, quotationsApi, productsApi } from '@/api/sales'
-import { mockKitTemplates } from '@/mocks/sales/kitTemplates'
+import { customersApi, surveysApi, quotationsApi, productsApi, kitsApi, isGlobalMockEnabled } from '@/api/sales'
 import { DEFAULT_GST_RATE, SYSTEM_TYPES, computeTotals, formatCurrency, formatDate, listFrom } from './salesHelpers'
+
+// The real backend builds a quote from a kit at today's prices + 18% GST; lines, GST and discount are fixed.
+const BACKEND_GST_RATE = 18
 
 const emptyLine = () => ({ key: crypto.randomUUID(), productId: '', productName: '', qty: 1, unitPrice: 0 })
 
@@ -16,9 +18,12 @@ export default function QuotationBuilderPage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const toast = useToast()
+  const live = !isGlobalMockEnabled()
 
   const [customers, setCustomers] = useState([])
   const [products, setProducts] = useState([])
+  const [kits, setKits] = useState([])
+  const [kitId, setKitId] = useState('')
   const [surveys, setSurveys] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -30,7 +35,7 @@ export default function QuotationBuilderPage() {
     surveyId: params.get('surveyId') || '',
     systemCapacityKw: Number(params.get('recommendedKw')) || 3,
     systemType: 'on_grid',
-    gstRate: DEFAULT_GST_RATE,
+    gstRate: live ? BACKEND_GST_RATE : DEFAULT_GST_RATE,
     discount: 0,
     notes: '25-year panel performance warranty, 5-year inverter warranty. Quote valid for 15 days.',
   })
@@ -39,9 +44,15 @@ export default function QuotationBuilderPage() {
   // Initial data: customers, product catalogue, and the quote being edited (if any).
   useEffect(() => {
     const loadAll = async () => {
-      const [custRes, prodRes] = await Promise.all([customersApi.getCustomers(), productsApi.getProducts()])
+      const [custRes, prodRes, kitRes] = await Promise.all([
+        customersApi.getCustomers(),
+        productsApi.getProducts(),
+        kitsApi.getKits(),
+      ])
       setCustomers(listFrom(custRes))
       setProducts(listFrom(prodRes))
+      setKits(listFrom(kitRes))
+      if (custRes?.success === false) toast.error(custRes.message)
       if (editId) {
         const qRes = await quotationsApi.getQuotationById(editId)
         const q = qRes?.data
@@ -62,6 +73,7 @@ export default function QuotationBuilderPage() {
       setLoading(false)
     }
     loadAll()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editId])
 
   // Completed surveys for the chosen customer.
@@ -76,9 +88,11 @@ export default function QuotationBuilderPage() {
   const customer = customers.find((c) => c.id === form.customerId)
   const survey = surveys.find((s) => s.id === form.surveyId)
   const totals = useMemo(() => computeTotals(lines, form.gstRate, form.discount), [lines, form.gstRate, form.discount])
-  const panelWatts = lines
-    .filter((l) => l.productId === 'prod_panel_540')
-    .reduce((sum, l) => sum + (Number(l.qty) || 0) * 540, 0)
+  const panelWatts = lines.reduce((sum, l) => {
+    const isPanel = l.category === 'panel' || l.category === 'solar_panel' || l.productId === 'prod_panel_540'
+    const watts = Number(String(l.productName || '').match(/(\d+)\s*W\b/i)?.[1] || 0)
+    return isPanel ? sum + (Number(l.qty) || 0) * watts : sum
+  }, 0)
 
   const setField = (name, value) => {
     setForm((f) => ({ ...f, [name]: value }))
@@ -92,7 +106,8 @@ export default function QuotationBuilderPage() {
 
   const applyKit = (kit) => {
     setLines(kit.items.map((item) => ({ ...item, key: crypto.randomUUID() })))
-    setForm((f) => ({ ...f, systemCapacityKw: kit.capacityKw, systemType: kit.systemType }))
+    setKitId(kit.id)
+    setForm((f) => ({ ...f, systemCapacityKw: kit.capacityKw || f.systemCapacityKw, systemType: kit.systemType }))
     setErrors((e) => ({ ...e, lines: undefined }))
     toast.success(`Loaded "${kit.name}"`)
   }
@@ -110,7 +125,8 @@ export default function QuotationBuilderPage() {
     if (!form.customerId) e.customerId = 'Choose a customer'
     if (!(Number(form.systemCapacityKw) > 0)) e.systemCapacityKw = 'Enter the system size'
     const valid = lines.filter((l) => l.productId && Number(l.qty) > 0)
-    if (valid.length === 0) e.lines = 'Add at least one product line'
+    if (live && !kitId) e.lines = 'Choose a package: quotations are created from a kit'
+    else if (valid.length === 0) e.lines = 'Add at least one product line'
     if (Number(form.discount) < 0) e.discount = 'Discount cannot be negative'
     if (Number(form.discount) > totals.subtotal + totals.gstAmount) e.discount = 'Discount is larger than the total'
     setErrors(e)
@@ -135,6 +151,7 @@ export default function QuotationBuilderPage() {
     const payload = {
       customerId: form.customerId,
       customerName: customer?.name,
+      kitId: kitId || null,
       surveyId: form.surveyId || null,
       systemCapacityKw: Number(form.systemCapacityKw),
       systemType: form.systemType,
@@ -153,7 +170,7 @@ export default function QuotationBuilderPage() {
       return
     }
     const saved = res?.data
-    toast.success(`${saved?.quotationNumber || 'Quotation'} saved as ${status}`)
+    toast.success(`${saved?.quotationNumber || 'Quotation'} saved${live ? '' : ` as ${status}`}`)
     navigate(status === 'sent' ? `/sales/quotations/${saved.id}/print` : '/sales/quotations')
   }
 
@@ -237,19 +254,32 @@ export default function QuotationBuilderPage() {
             </div>
           </Card>
 
-          <Card title="Start from a package" subtitle="Replaces the current lines with a pre-configured kit.">
+          <Card
+            title={live ? 'Choose a package' : 'Start from a package'}
+            subtitle={
+              live
+                ? "Required: the backend prices the quote from this kit at today's product prices + 18% GST."
+                : 'Replaces the current lines with a pre-configured kit.'
+            }
+          >
+            {kits.length === 0 && !loading && (
+              <p className="text-xs text-slate-500">No kits found. Ask an admin to create one under Admin → Kits.</p>
+            )}
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              {mockKitTemplates.map((kit) => {
+              {kits.map((kit) => {
                 const kitTotal = kit.items.reduce((s, i) => s + i.qty * i.unitPrice, 0)
+                const selected = kitId === kit.id
                 return (
                   <button
                     key={kit.id}
                     type="button"
                     onClick={() => applyKit(kit)}
-                    className="rounded-lg border border-slate-200 p-3 text-left transition-colors hover:border-amber-300 hover:bg-amber-50/40"
+                    className={`rounded-lg border p-3 text-left transition-colors hover:border-amber-300 hover:bg-amber-50/40 ${
+                      selected ? 'border-amber-400 bg-amber-50 ring-1 ring-amber-300' : 'border-slate-200'
+                    }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-bold text-slate-900">{kit.capacityKw} kW</span>
+                      <span className="text-sm font-bold text-slate-900">{kit.capacityKw ? `${kit.capacityKw} kW` : 'Kit'}</span>
                       <Badge statusKey={kit.systemType} size="sm">{kit.systemType}</Badge>
                     </div>
                     <div className="mt-1 text-xs font-medium text-slate-700">{kit.name}</div>
@@ -262,7 +292,12 @@ export default function QuotationBuilderPage() {
 
           <Card
             title="Bill of materials"
-            actions={<Button size="sm" variant="outline" onClick={() => setLines((ls) => [...ls, emptyLine()])}>+ Add line</Button>}
+            subtitle={live ? 'Set by the chosen kit (read-only with the live backend).' : undefined}
+            actions={
+              live ? null : (
+                <Button size="sm" variant="outline" onClick={() => setLines((ls) => [...ls, emptyLine()])}>+ Add line</Button>
+              )
+            }
           >
             {errors.lines && <p className="mb-3 text-xs text-rose-600">{errors.lines}</p>}
             <div className="space-y-3">
@@ -275,7 +310,12 @@ export default function QuotationBuilderPage() {
                     value={line.productId}
                     onChange={(e) => onProductChange(line.key, e.target.value)}
                     placeholder="Select product"
-                    options={productOptions}
+                    options={
+                      live && line.productId && !productOptions.some((o) => o.value === line.productId)
+                        ? [...productOptions, { value: line.productId, label: line.productName }]
+                        : productOptions
+                    }
+                    disabled={live}
                   />
                   <Input
                     className="col-span-4 md:col-span-2"
@@ -285,6 +325,7 @@ export default function QuotationBuilderPage() {
                     min="1"
                     value={line.qty}
                     onChange={(e) => updateLine(line.key, { qty: e.target.value })}
+                    disabled={live}
                   />
                   <Input
                     className="col-span-5 md:col-span-3"
@@ -295,18 +336,21 @@ export default function QuotationBuilderPage() {
                     prefix="₹"
                     value={line.unitPrice}
                     onChange={(e) => updateLine(line.key, { unitPrice: e.target.value })}
+                    disabled={live}
                   />
                   <div className="col-span-2 py-2 text-right text-sm font-semibold text-slate-900 md:col-span-1">
                     {formatCurrency((Number(line.qty) || 0) * (Number(line.unitPrice) || 0), { compact: true })}
                   </div>
-                  <button
-                    type="button"
-                    title="Remove line"
-                    onClick={() => setLines((ls) => (ls.length > 1 ? ls.filter((l) => l.key !== line.key) : [emptyLine()]))}
-                    className="col-span-1 rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
-                  >
-                    ✕
-                  </button>
+                  {!live && (
+                    <button
+                      type="button"
+                      title="Remove line"
+                      onClick={() => setLines((ls) => (ls.length > 1 ? ls.filter((l) => l.key !== line.key) : [emptyLine()]))}
+                      className="col-span-1 rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -320,14 +364,14 @@ export default function QuotationBuilderPage() {
               <div className="flex items-center justify-between gap-3">
                 <dt className="text-slate-500">GST rate (%)</dt>
                 <dd className="w-24">
-                  <Input name="gstRate" type="number" step="0.1" min="0" value={form.gstRate} onChange={(e) => setField('gstRate', e.target.value)} />
+                  <Input name="gstRate" type="number" step="0.1" min="0" value={form.gstRate} onChange={(e) => setField('gstRate', e.target.value)} disabled={live} />
                 </dd>
               </div>
               <div className="flex justify-between"><dt className="text-slate-500">GST amount</dt><dd className="font-medium">{formatCurrency(totals.gstAmount)}</dd></div>
               <div className="flex items-center justify-between gap-3">
                 <dt className="text-slate-500">Discount</dt>
                 <dd className="w-32">
-                  <Input name="discount" type="number" min="0" prefix="₹" value={form.discount} onChange={(e) => setField('discount', e.target.value)} error={errors.discount} />
+                  <Input name="discount" type="number" min="0" prefix="₹" value={form.discount} onChange={(e) => setField('discount', e.target.value)} error={errors.discount} disabled={live} />
                 </dd>
               </div>
               <div className="flex justify-between border-t border-slate-200 pt-3 text-base">
@@ -351,8 +395,12 @@ export default function QuotationBuilderPage() {
             />
 
             <div className="mt-5 flex flex-col gap-2">
-              <Button onClick={() => save('sent')} loading={saving} disabled={loading}>Save &amp; mark as sent</Button>
-              <Button variant="outline" onClick={() => save('draft')} disabled={saving || loading}>Save as draft</Button>
+              <Button onClick={() => save('sent')} loading={saving} disabled={loading}>
+                {live ? 'Create quotation' : 'Save & mark as sent'}
+              </Button>
+              {!live && (
+                <Button variant="outline" onClick={() => save('draft')} disabled={saving || loading}>Save as draft</Button>
+              )}
               <Button variant="ghost" onClick={() => navigate(-1)} disabled={saving}>Cancel</Button>
             </div>
           </Card>
