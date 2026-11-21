@@ -11,6 +11,7 @@ const {
 
 const { auth, isCustomerCare } = require("../middlewares/auth.middleware");
 
+router.post("/public", createEnquiry);
 router.post("/", auth, isCustomerCare, createEnquiry);
 router.get("/", auth, isCustomerCare, getEnquiries);
 router.get("/follow-ups", auth, isCustomerCare, getTodayFollowUps);
