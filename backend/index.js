@@ -11,6 +11,8 @@ const { dbConnect } = require("./config/db");
 const userRoutes = require("./routes/user.routes");
 const enquiryRoutes = require("./routes/enquiry.route");
 const customerRoutes = require("./routes/customer.route");
+const productRoutes = require("./routes/product.route");
+const kitRoutes = require("./routes/kit.route");
 
 const PORT = process.env.PORT || 4000;
 
