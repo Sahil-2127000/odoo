@@ -7,6 +7,9 @@ require("dotenv").config();
 
 const { dbConnect } = require("./config/db");
 
+// routes
+const userRoutes = require("./routes/user.routes");
+
 const PORT = process.env.PORT || 4000;
 
 // database
@@ -22,11 +25,10 @@ app.use(
   })
 );
 
-// routes (added in later steps)
-// app.use("/api/v1/auth", userRoutes);
-// app.use("/api/v1/leads", leadRoutes);
+// mount routes
+app.use("/api/v1/auth", userRoutes);
 
-// health check
+// health check or just a default routes
 app.get("/api/v1", (req, res) => {
   return res.status(200).json({
     success: true,
@@ -34,7 +36,7 @@ app.get("/api/v1", (req, res) => {
   });
 });
 
-// unknown routes
+// unknown routes (keep this LAST)
 app.use((req, res) => {
   return res.status(404).json({
     success: false,
