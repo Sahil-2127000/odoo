@@ -13,6 +13,7 @@ const enquiryRoutes = require("./routes/enquiry.route");
 const customerRoutes = require("./routes/customer.route");
 const productRoutes = require("./routes/product.route");
 const kitRoutes = require("./routes/kit.route");
+const orderRoutes = require("./routes/order.route");
 
 const PORT = process.env.PORT || 4000;
 
@@ -33,6 +34,10 @@ app.use(
 app.use("/api/v1/auth", userRoutes);
 app.use("/api/v1/enquiries", enquiryRoutes);
 app.use("/api/v1/customers", customerRoutes);
+app.use("/api/v1/products",productRoutes);
+app.use("api/v1/kits",kitRoutes);
+app.use("/api/v1/orders", orderRoutes);
+
 
 // health check or just a default routes
 app.get("/api/v1", (req, res) => {
