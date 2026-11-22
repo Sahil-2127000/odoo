@@ -1,7 +1,7 @@
 // /operations/orders - confirmed orders waiting to be packed and dispatched.
 // Dispatch asks for serial numbers typed in (not scanned) - one per line.
 import { useEffect, useState } from 'react'
-import { PackageCheck, Truck } from 'lucide-react'
+import { Home, PackageCheck, Truck } from 'lucide-react'
 import { Badge, Button, DataTable, Modal, PageHeader, Tabs, Textarea, useToast } from '@/components/ui'
 import { advanceStatus, getOrders } from '@/api/operations/orders'
 import { formatCurrency } from '@/utils/format'
@@ -17,7 +17,7 @@ export default function OrdersToProcess() {
   const [tab, setTab] = useState('confirmed')
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
-  const [packing, setPacking] = useState(null) // order id being marked packed
+  const [moving, setMoving] = useState(null) // order id being marked packed / delivered
   const [dispatchTarget, setDispatchTarget] = useState(null) // order being dispatched
 
   function load() {
@@ -30,16 +30,17 @@ export default function OrdersToProcess() {
 
   useEffect(load, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function handlePack(id) {
-    setPacking(id)
+  // packed and delivered need no extra details, so one click moves the order on
+  async function moveTo(id, status) {
+    setMoving(id)
     try {
-      await advanceStatus(id, 'packed')
-      toast.success('Order marked packed')
+      await advanceStatus(id, status)
+      toast.success(`Order marked ${status}`)
       load()
     } catch (err) {
       toast.error(err.message)
     } finally {
-      setPacking(null)
+      setMoving(null)
     }
   }
 
@@ -55,12 +56,16 @@ export default function OrdersToProcess() {
       align: 'right',
       render: (o) =>
         o.status === 'confirmed' ? (
-          <Button size="sm" icon={PackageCheck} loading={packing === o._id} onClick={() => handlePack(o._id)}>
+          <Button size="sm" icon={PackageCheck} loading={moving === o._id} onClick={() => moveTo(o._id, 'packed')}>
             Mark packed
           </Button>
         ) : o.status === 'packed' ? (
           <Button size="sm" icon={Truck} onClick={() => setDispatchTarget(o)}>
             Dispatch
+          </Button>
+        ) : o.status === 'dispatched' ? (
+          <Button size="sm" icon={Home} loading={moving === o._id} onClick={() => moveTo(o._id, 'delivered')}>
+            Mark delivered
           </Button>
         ) : null,
     },
@@ -68,7 +73,7 @@ export default function OrdersToProcess() {
 
   return (
     <>
-      <PageHeader title="Orders to process" subtitle="Pack and dispatch confirmed orders" />
+      <PageHeader title="Orders to process" subtitle="Pack, dispatch and deliver confirmed orders" />
 
       <Tabs value={tab} onChange={setTab} tabs={TABS} className="mb-4" />
 
