@@ -1,4 +1,5 @@
-// Mock data for public landing page, kit catalog, order tracking and customer support
+// Solar packages shown on the landing page.
+// The backend has no public kits endpoint (GET /kits needs a staff login), so this list stays in the frontend.
 
 export const mockKits = [
   {
@@ -112,91 +113,5 @@ export const mockKits = [
     battery: '48V 200Ah High Capacity Lithium Pack',
     popular: false,
     description: 'Full autonomy for factories, clinics, and rural premises with erratic grid power supply.',
-  },
-]
-
-// Sample tracked orders according to the hackathon brief
-export const mockOrdersDatabase = [
-  {
-    orderId: 'SC-1042',
-    phone: '9876543210',
-    customerName: 'R. Sharma',
-    kit: '3 kW On-Grid',
-    capacityKw: 3,
-    type: 'on_grid',
-    status: 'installed',
-    total: 186200,
-    paid: 186200,
-    balance: 0,
-    statusHistory: [
-      { status: 'quoted', at: '2025-04-10' },
-      { status: 'confirmed', at: '2025-04-14' },
-      { status: 'packed', at: '2025-04-20' },
-      { status: 'dispatched', at: '2025-04-22' },
-      { status: 'delivered', at: '2025-04-25' },
-      { status: 'installed', at: '2025-05-02' },
-      { status: 'closed', at: '2025-05-15' },
-    ],
-    equipment: [
-      {
-        serialUnitId: 'su-inv-101',
-        product: 'On-grid Inverter 3kW (Growatt)',
-        serialMasked: 'INV-****7821',
-        warrantyEnd: '2027-05-10',
-        underWarranty: true,
-      },
-      {
-        serialUnitId: 'su-pnl-102',
-        product: '540W Mono Perc Solar Panels (Set of 6)',
-        serialMasked: 'PNL-****3309',
-        warrantyEnd: '2045-05-10',
-        underWarranty: true,
-      },
-    ],
-    tickets: [
-      {
-        id: 't-207',
-        ticketNo: 'TK-207',
-        serialUnitId: 'su-inv-101',
-        issue: 'Fault code E07 on Inverter',
-        status: 'resolved',
-        createdAt: '2026-07-12',
-      },
-    ],
-  },
-  {
-    orderId: 'SC-1088',
-    phone: '9812345678',
-    customerName: 'Vikram Mehta',
-    kit: '5 kW On-Grid',
-    capacityKw: 5,
-    type: 'on_grid',
-    status: 'dispatched',
-    total: 265000,
-    paid: 150000,
-    balance: 115000,
-    statusHistory: [
-      { status: 'quoted', at: '2026-10-01' },
-      { status: 'confirmed', at: '2026-10-05' },
-      { status: 'packed', at: '2026-10-12' },
-      { status: 'dispatched', at: '2026-10-14' },
-    ],
-    equipment: [
-      {
-        serialUnitId: 'su-inv-205',
-        product: '5kW Smart Wi-Fi Inverter',
-        serialMasked: 'INV-****9104',
-        warrantyEnd: '2028-10-15',
-        underWarranty: true,
-      },
-      {
-        serialUnitId: 'su-pnl-206',
-        product: '540W Bifacial Solar Panels (Set of 10)',
-        serialMasked: 'PNL-****8823',
-        warrantyEnd: '2046-10-15',
-        underWarranty: true,
-      },
-    ],
-    tickets: [],
   },
 ]

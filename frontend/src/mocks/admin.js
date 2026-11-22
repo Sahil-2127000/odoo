@@ -48,9 +48,9 @@ export const mockKits = [
 
 // User model (staff only): name, email, phone, role, isActive
 export const mockStaff = [
-  { _id: 'u1', name: 'Anita Director', email: 'admin@solarconnect.com', phone: '9810000001', role: 'admin', isActive: true, createdAt: '2026-10-01T10:00:00.000Z' },
-  { _id: 'u2', name: 'Rahul Sales', email: 'sales@solarconnect.com', phone: '9810000002', role: 'customer_care', isActive: true, createdAt: '2026-10-03T10:00:00.000Z' },
-  { _id: 'u3', name: 'Vikram Store', email: 'warehouse@solarconnect.com', phone: '9810000003', role: 'warehouse', isActive: true, createdAt: '2026-10-05T10:00:00.000Z' },
-  { _id: 'u4', name: 'Suresh Technician', email: 'tech@solarconnect.com', phone: '9810000004', role: 'technician', isActive: true, createdAt: '2026-10-08T10:00:00.000Z' },
-  { _id: 'u5', name: 'Amit Kumar', email: 'amit@solarconnect.com', phone: '9810000005', role: 'technician', isActive: false, createdAt: '2026-10-12T10:00:00.000Z' },
+  { _id: 'u1', name: 'Admin', email: 'admin@solarflow.in', phone: '9810000001', role: 'admin', isActive: true, createdAt: '2026-10-01T10:00:00.000Z' },
+  { _id: 'u2', name: 'Simran Kaur', email: 'care@solarflow.in', phone: '9810000002', role: 'customer_care', isActive: true, createdAt: '2026-10-03T10:00:00.000Z' },
+  { _id: 'u3', name: 'Manoj Kumar', email: 'warehouse@solarflow.in', phone: '9810000003', role: 'warehouse', isActive: true, createdAt: '2026-10-05T10:00:00.000Z' },
+  { _id: 'u4', name: 'Gurpreet Singh', email: 'tech@solarflow.in', phone: '9810000004', role: 'technician', isActive: true, createdAt: '2026-10-08T10:00:00.000Z' },
+  { _id: 'u5', name: 'Amit Kumar', email: 'amit@solarflow.in', phone: '9810000005', role: 'technician', isActive: false, createdAt: '2026-10-12T10:00:00.000Z' },
 ]

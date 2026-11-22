@@ -1,8 +1,9 @@
 import api, { mockDelay } from './axios'
 import { mockUsers } from '@/mocks/users'
 
+// true = use fake users from src/mocks/users.js. false = real backend.
 // true = use fake users from src/mocks/users.js. Set to false when the backend is running.
-export const USE_MOCK = true
+export const USE_MOCK = false
 
 /** POST /auth/login { email, password } -> { token, user } */
 export async function login({ email, password }) {

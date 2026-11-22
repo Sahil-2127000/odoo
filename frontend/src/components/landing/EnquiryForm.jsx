@@ -41,12 +41,18 @@ export default function EnquiryForm({ form, setForm }) {
     setSending(true)
     setServerError('')
     try {
-      const result = await submitEnquiry({
-        ...form,
+      // Size and system type are saved as fields (Sales sees them as "Needs");
+      // the bill has no field, so the note keeps a readable summary of everything
+      const systemLabel = form.systemType === 'off_grid' ? 'Off-Grid' : 'On-Grid'
+      const enquiry = await submitEnquiry({
+        name: form.name.trim(),
+        phone: form.phone,
+        city: form.city.trim(),
+        note: `Wants a ${form.capacityKw} kW ${systemLabel} system. Monthly bill about Rs ${form.monthlyBill}.`,
+        systemType: form.systemType,
         capacityKw: Number(form.capacityKw),
-        monthlyBill: Number(form.monthlyBill),
       })
-      setReferenceNumber(result.referenceNumber)
+      setReferenceNumber(enquiry.code) // e.g. EN-1004
     } catch (err) {
       setServerError(err.message || 'Something went wrong. Please try again.')
     } finally {

@@ -1,6 +1,8 @@
 // Pages under /admin (shown inside DashboardLayout). Owner: Frontend 1.
 import { Route } from 'react-router-dom'
 import Overview from '@/pages/admin/Overview'
+import Orders from '@/pages/admin/Orders'
+import OrderDetail from '@/pages/admin/OrderDetail'
 import Products from '@/pages/admin/Products'
 import Kits from '@/pages/admin/Kits'
 import Users from '@/pages/admin/Users'
@@ -10,6 +12,8 @@ import UiKit from '@/pages/admin/UiKit'
 const adminRoutes = (
   <>
     <Route index element={<Overview />} />
+    <Route path="orders" element={<Orders />} />
+    <Route path="orders/:id" element={<OrderDetail />} />
     <Route path="products" element={<Products />} />
     <Route path="kits" element={<Kits />} />
     <Route path="users" element={<Users />} />

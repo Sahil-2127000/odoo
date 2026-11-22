@@ -58,6 +58,8 @@ exports.createOrder = async (req, res) => {
     const order = await Order.create({
       code: await generateCode(Order, "OR"),
       customer,
+      systemType: kitData.systemType,
+      capacityKw: kitData.capacityKw,
       items,
       total,
       totalCost,
@@ -402,6 +404,10 @@ exports.trackOrder = async (req, res) => {
         code: order.code,
         customerName: order.customer.name,
         status: order.status,
+        systemType: order.systemType,
+        capacityKw: order.capacityKw,
+        total: order.total,
+        amountPaid: order.amountPaid, // pending = total - amountPaid (for "Pay now")
         installedAt: order.installedAt,
         items,
       },

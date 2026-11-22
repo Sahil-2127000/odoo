@@ -3,7 +3,7 @@
 import api, { mockDelay } from './axios'
 import { mockKits, mockProducts, mockStaff } from '@/mocks/admin'
 
-export const USE_MOCK = true // Set to false when the backend endpoints are ready
+export const USE_MOCK = false // true = fake data from src/mocks (for working without the backend)
 
 // In-memory copies so add / edit / delete work in mock mode
 let products = structuredClone(mockProducts)
