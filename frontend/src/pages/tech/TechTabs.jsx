@@ -2,7 +2,9 @@
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/utils/cn'
 
+// in the order the jobs happen: survey -> install -> service
 const TABS = [
+  { to: '/tech/surveys', label: 'Surveys' },
   { to: '/tech', label: 'Installations', end: true },
   { to: '/tech/complaints', label: 'Complaints' },
 ]
