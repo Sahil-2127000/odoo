@@ -7,6 +7,7 @@ const customerSchema = new mongoose.Schema(
     phone: { type: String, required: true },
     email: { type: String },
     address: { type: String },
+    enquiry: { type: mongoose.Schema.Types.ObjectId, ref: "Enquiry" }, // the lead this customer came from
   },
   { timestamps: true }
 );

@@ -10,6 +10,7 @@ const CATEGORIES = [
   { value: 'panel', label: 'Panel' },
   { value: 'inverter', label: 'Inverter' },
   { value: 'battery', label: 'Battery' },
+  { value: 'cable', label: 'Cable (per metre)' }, // quotes use the surveyed length for this
   { value: 'other', label: 'Other' },
 ]
 const categoryLabel = (value) => CATEGORIES.find((c) => c.value === value)?.label ?? value
