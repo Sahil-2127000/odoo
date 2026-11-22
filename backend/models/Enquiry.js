@@ -20,7 +20,13 @@ const enquirySchema = new mongoose.Schema(
       enum: ["pending", "approved", "rejected"], // technician's site survey
       default: "pending",
     },
-    surveyNotes: { type: String }, // roof direction, tilt, cable length etc.
+    surveyNotes: { type: String }, // anything else the technician noticed on the roof
+    // site survey: sales picks the technician + date, the technician fills the measurements
+    surveyTechnician: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    surveyDate: { type: Date },
+    surveyDirection: { type: String }, // roof faces e.g. "South"
+    surveyTilt: { type: Number },      // degrees
+    surveyCableMeters: { type: Number }, // cable needed from roof to inverter, used in the quote
   },
   { timestamps: true }
 );

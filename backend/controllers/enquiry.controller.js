@@ -1,6 +1,9 @@
 const Enquiry = require("../models/Enquiry");
 const Customer = require("../models/Customer");
+const Kit = require("../models/Kit");
+const User = require("../models/User");
 const generateCode = require("../util/generateCode.util");
+const { createQuoteFromKit } = require("../util/quote.util");
 
 // POST /api/v1/enquiries
 exports.createEnquiry = async (req, res) => {
@@ -46,7 +49,9 @@ exports.getEnquiries = async (req, res) => {
     const filter = {};
     if (req.query.status) filter.status = req.query.status;
 
-    const enquiries = await Enquiry.find(filter).sort({ createdAt: -1 });
+    const enquiries = await Enquiry.find(filter)
+      .populate("surveyTechnician", "name phone")
+      .sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,
@@ -123,14 +128,23 @@ exports.updateEnquiry = async (req, res) => {
 };
 
 // PATCH /api/v1/enquiries/:id/survey   body: { surveyStatus, surveyNotes }
-exports.updateSurvey = async (req, res) => {
+// PATCH /api/v1/enquiries/:id/assign-survey   body: { surveyTechnician, surveyDate }   (sales)
+exports.assignSurvey = async (req, res) => {
   try {
-    const { surveyStatus, surveyNotes } = req.body;
+    const { surveyTechnician, surveyDate } = req.body;
 
-    if (!["pending", "approved", "rejected"].includes(surveyStatus)) {
+    if (!surveyTechnician || !surveyDate) {
       return res.status(400).json({
         success: false,
-        message: "surveyStatus must be pending, approved or rejected",
+        message: "Technician and survey date are required",
+      });
+    }
+
+    const technician = await User.findById(surveyTechnician);
+    if (!technician || technician.role !== "technician") {
+      return res.status(400).json({
+        success: false,
+        message: "Assigned user must be a technician",
       });
     }
 
@@ -142,7 +156,97 @@ exports.updateSurvey = async (req, res) => {
       });
     }
 
+    if (enquiry.surveyStatus !== "pending") {
+      return res.status(400).json({
+        success: false,
+        message: "The survey for this enquiry is already done",
+      });
+    }
+
+    enquiry.surveyTechnician = surveyTechnician;
+    enquiry.surveyDate = surveyDate;
+    await enquiry.save();
+    await enquiry.populate("surveyTechnician", "name phone");
+
+    return res.status(200).json({
+      success: true,
+      message: `Survey assigned to ${technician.name}`,
+      data: enquiry,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Could not assign survey",
+      error: error.message,
+    });
+  }
+};
+
+// GET /api/v1/enquiries/my-surveys   (technician: surveys assigned to me, still pending)
+exports.getMySurveys = async (req, res) => {
+  try {
+    const surveys = await Enquiry.find({
+      surveyTechnician: req.user.id,
+      surveyStatus: "pending",
+    }).sort({ surveyDate: 1 });
+
+    return res.status(200).json({
+      success: true,
+      message: "Surveys fetched",
+      data: surveys,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Could not fetch surveys",
+      error: error.message,
+    });
+  }
+};
+
+// PATCH /api/v1/enquiries/:id/survey   (technician records the result on site)
+// body: { surveyStatus: "approved" | "rejected", surveyDirection, surveyTilt, surveyCableMeters, surveyNotes }
+exports.updateSurvey = async (req, res) => {
+  try {
+    const { surveyStatus, surveyDirection, surveyTilt, surveyCableMeters, surveyNotes } = req.body;
+
+    if (!["approved", "rejected"].includes(surveyStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: "surveyStatus must be approved or rejected",
+      });
+    }
+
+    // the quote uses the cable length, so it is required when the site is approved
+    if (surveyStatus === "approved" && !(Number(surveyCableMeters) > 0)) {
+      return res.status(400).json({
+        success: false,
+        message: "Enter the cable length in metres to approve the site",
+      });
+    }
+
+    const enquiry = await Enquiry.findById(req.params.id);
+    if (!enquiry) {
+      return res.status(404).json({
+        success: false,
+        message: "Enquiry not found",
+      });
+    }
+
+    // a technician can only record surveys assigned to them
+    if (req.user.role === "technician" && String(enquiry.surveyTechnician) !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "This survey is not assigned to you",
+      });
+    }
+
     enquiry.surveyStatus = surveyStatus;
+    enquiry.surveyDirection = surveyDirection;
+    enquiry.surveyTilt = surveyTilt;
+    enquiry.surveyCableMeters = surveyCableMeters;
     if (surveyNotes !== undefined) enquiry.surveyNotes = surveyNotes;
 
     // survey rejected -> lead lost, same as the paper flow
@@ -198,15 +302,26 @@ exports.convertEnquiry = async (req, res) => {
       phone: enquiry.phone,
       email: req.body.email,
       address: req.body.address || enquiry.city,
+      enquiry: enquiry._id,
     });
 
     enquiry.status = "converted";
     await enquiry.save();
 
+    // make the quote straight away from the kit the customer asked for,
+    // with the cable length the technician measured
+    let quote = null;
+    const kit = await Kit.findOne({ systemType: enquiry.systemType, capacityKw: enquiry.capacityKw });
+    if (kit) {
+      quote = await createQuoteFromKit(customer._id, kit._id, enquiry.surveyCableMeters);
+    }
+
     return res.status(201).json({
       success: true,
-      message: "Enquiry converted to customer",
-      data: customer,
+      message: quote
+        ? `Enquiry converted to customer ${customer.code}. Quote ${quote.code} created from the ${kit.name}`
+        : `Enquiry converted to customer ${customer.code}. No matching kit, create the quote from Orders`,
+      data: { customer, quote },
     });
   } catch (error) {
     console.error(error);

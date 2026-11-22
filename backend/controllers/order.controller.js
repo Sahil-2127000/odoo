@@ -1,10 +1,9 @@
 const Order = require("../models/Order");
-const Kit = require("../models/Kit");
 const Customer = require("../models/Customer");
 const Product = require("../models/Product");
 const User = require("../models/User");
-const generateCode = require("../util/generateCode.util");
 const { itemWarrantyEnd } = require("../util/warranty.util");
+const { createQuoteFromKit } = require("../util/quote.util");
 const { uploadPhoto } = require("../util/cloudinary.util");
 
 const STATUS_FLOW = ["quoted", "confirmed", "packed", "dispatched", "delivered", "installed"];
@@ -21,49 +20,23 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    const customerExists = await Customer.findById(customer);
-    if (!customerExists) {
+    // the customer's enquiry holds the cable length the technician measured (if any)
+    const customerData = await Customer.findById(customer).populate("enquiry", "surveyCableMeters");
+    if (!customerData) {
       return res.status(404).json({
         success: false,
         message: "Customer not found",
       });
     }
 
-    const kitData = await Kit.findById(kit).populate("items.product");
-    if (!kitData) {
+    // copy kit items into the order with today's prices
+    const order = await createQuoteFromKit(customer, kit, customerData.enquiry?.surveyCableMeters);
+    if (!order) {
       return res.status(404).json({
         success: false,
         message: "Kit not found",
       });
     }
-
-    // copy kit items into the order with today's prices
-    let subtotal = 0;
-    let totalCost = 0;
-    const items = [];
-
-    for (const item of kitData.items) {
-      items.push({
-        product: item.product._id,
-        qty: item.qty,
-        price: item.product.sellPrice,
-      });
-
-      subtotal = subtotal + item.product.sellPrice * item.qty;
-      totalCost = totalCost + item.product.costPrice * item.qty;
-    }
-
-    const total = Math.round(subtotal * 1.18); // add 18% GST
-
-    const order = await Order.create({
-      code: await generateCode(Order, "OR"),
-      customer,
-      systemType: kitData.systemType,
-      capacityKw: kitData.capacityKw,
-      items,
-      total,
-      totalCost,
-    });
 
     return res.status(201).json({
       success: true,
