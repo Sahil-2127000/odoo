@@ -12,11 +12,12 @@ export async function getPublicKits() {
 
 /**
  * Landing page "Get a free quote" form.
- * Backend API: POST /enquiries/public  body: { name, phone, city, note, systemType, capacityKw }
+ * Backend API: POST /enquiries/public  body: { name, phone, email, city, note, systemType, capacityKw }
+ * If an email is given, the backend creates the customer-portal login and emails it.
  * Returns the saved enquiry, e.g. { code: 'EN-1004', name, phone, ... }
  */
-export async function submitEnquiry({ name, phone, city, note, systemType, capacityKw }) {
-  return api.post('/enquiries/public', { name, phone, city, note, systemType, capacityKw })
+export async function submitEnquiry({ name, phone, email, city, note, systemType, capacityKw }) {
+  return api.post('/enquiries/public', { name, phone, email, city, note, systemType, capacityKw })
 }
 
 /**
