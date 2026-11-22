@@ -9,7 +9,7 @@ import { Button, Input } from '@/components/ui'
 // Password of the demo accounts created by the backend seed
 const DEMO_PASSWORD = 'password123'
 
-// One login page for all staff. After login each role goes to its own dashboard.
+// One login page for staff and customers. After login each role goes to its own portal.
 export default function Login() {
   const { login, isAuthenticated, homePath } = useAuth()
   const navigate = useNavigate()
@@ -62,8 +62,10 @@ export default function Login() {
             <Sun className="h-6 w-6 text-amber-400" /> SolarConnect
           </Link>
 
-          <h1 className="font-display text-5xl font-extrabold uppercase">Staff login</h1>
-          <p className="mt-1 text-sm text-slate-500">Use your work email and password.</p>
+          <h1 className="font-display text-5xl font-extrabold uppercase">Log in</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Staff use their work email. Customers use the email and password we sent after your enquiry.
+          </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
             <Input label="Email" name="email" type="email" icon={Mail} value={form.email} onChange={handleChange} required />

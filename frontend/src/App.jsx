@@ -8,6 +8,7 @@ import adminRoutes from '@/routes/adminRoutes'
 import salesRoutes from '@/routes/salesRoutes'
 import operationsRoutes from '@/routes/operationsRoutes'
 import techRoutes from '@/routes/techRoutes'
+import customerRoutes from '@/routes/customerRoutes'
 import Login from '@/pages/auth/Login'
 import LandingPage from '@/pages/public/LandingPage'
 import TrackOrder from '@/pages/public/TrackOrder'
@@ -31,8 +32,8 @@ export default function App() {
               <Route path="/admin" element={<DashboardLayout />}>{adminRoutes}</Route>
             </Route>
 
-            {/* Printable invoice, full page without the sidebar (Admin and Sales) */}
-            <Route element={<ProtectedRoute roles={[ROLES.ADMIN, ROLES.SALES]} />}>
+            {/* Printable invoice, full page without the sidebar (Admin, Sales, and customers for their own orders) */}
+            <Route element={<ProtectedRoute roles={[ROLES.ADMIN, ROLES.SALES, ROLES.CUSTOMER]} />}>
               <Route path="/invoice/:type/:id" element={<InvoicePrint />} />
             </Route>
 
@@ -49,6 +50,11 @@ export default function App() {
             {/* Technician (mobile layout, no sidebar) */}
             <Route element={<ProtectedRoute roles={[ROLES.TECHNICIAN]} />}>
               <Route path="/tech" element={<TechLayout />}>{techRoutes}</Route>
+            </Route>
+
+            {/* Customer portal (login emailed after their enquiry) */}
+            <Route element={<ProtectedRoute roles={[ROLES.CUSTOMER]} />}>
+              <Route path="/customer" element={<DashboardLayout />}>{customerRoutes}</Route>
             </Route>
 
             {/* Any other address */}

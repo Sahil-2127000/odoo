@@ -1,11 +1,12 @@
 // Shared constants. Values must match the backend exactly.
 
-// Staff roles (same as the backend User model)
+// Roles (same as the backend User model). Customers get their login emailed after an enquiry.
 export const ROLES = {
   ADMIN: 'admin',
   SALES: 'customer_care',
   WAREHOUSE: 'warehouse',
   TECHNICIAN: 'technician',
+  CUSTOMER: 'customer',
 }
 
 // Page each role lands on after login
@@ -14,6 +15,7 @@ export const ROLE_HOME = {
   customer_care: '/sales',
   warehouse: '/operations',
   technician: '/tech',
+  customer: '/customer',
 }
 
 // Names shown in the sidebar and top bar
@@ -22,6 +24,7 @@ export const ROLE_LABELS = {
   customer_care: 'Sales',
   warehouse: 'Warehouse',
   technician: 'Technician',
+  customer: 'Customer',
 }
 
 // Status names, exactly as the backend models use them:
