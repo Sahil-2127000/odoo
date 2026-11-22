@@ -5,6 +5,7 @@ const enquirySchema = new mongoose.Schema(
     code: { type: String, required: true, unique: true }, // EN-1001
     name: { type: String, required: true },
     phone: { type: String, required: true },
+    email: { type: String, lowercase: true, trim: true }, // their customer-portal login is sent here
     city: { type: String },
     systemType: { type: String, enum: ["on_grid", "off_grid"] }, // what the customer asked for
     capacityKw: { type: Number },                                 // 1 to 5

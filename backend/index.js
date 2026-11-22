@@ -16,6 +16,7 @@ const kitRoutes = require("./routes/kit.route");
 const orderRoutes = require("./routes/order.route");
 const ticketRoutes = require("./routes/ticket.route");
 const dashboardRoutes = require("./routes/dashboard.route");
+const portalRoutes = require("./routes/portal.route");
 
 const PORT = process.env.PORT || 4000;
 
@@ -41,6 +42,7 @@ app.use("/api/v1/kits", kitRoutes);
 app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/tickets", ticketRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
+app.use("/api/v1/portal", portalRoutes);
 
 // health check or just a default routes
 app.get("/api/v1", (req, res) => {
