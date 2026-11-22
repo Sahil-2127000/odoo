@@ -9,6 +9,15 @@ import { formatCurrency, formatDate } from '@/utils/format'
 
 const TABS = ORDER_STATUSES.map((value) => ({ value, label: statusLabel(value) }))
 
+const SYSTEM_TYPES = [
+  { value: 'on_grid', label: 'On-Grid (connected to the grid)' },
+  { value: 'off_grid', label: 'Off-Grid (with battery backup)' },
+]
+
+// { capacityKw: 3, systemType: 'off_grid' } -> "3 kW Off-Grid"
+const systemText = (o) =>
+  o.systemType ? `${o.capacityKw ?? '?'} kW ${o.systemType === 'off_grid' ? 'Off-Grid' : 'On-Grid'}` : '—'
+
 export default function Orders() {
   const toast = useToast()
   const [tab, setTab] = useState('quoted')
@@ -31,6 +40,7 @@ export default function Orders() {
     { key: 'code', header: 'Order', className: 'font-mono text-xs' },
     { key: 'customer.name', header: 'Customer', sortable: true },
     { key: 'customer.phone', header: 'Phone' },
+    { key: 'systemType', header: 'System', render: systemText },
     { key: 'total', header: 'Total', align: 'right', render: (o) => formatCurrency(o.total) },
     {
       key: 'pending',
@@ -95,8 +105,14 @@ function NewQuoteModal({ onClose, onCreated }) {
   const [customers, setCustomers] = useState([])
   const [kits, setKits] = useState([])
   const [customer, setCustomer] = useState('')
+  const [systemType, setSystemType] = useState('on_grid')
   const [kit, setKit] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // only offer kits of the chosen type, smallest first
+  const matchingKits = kits
+    .filter((k) => (k.systemType || 'on_grid') === systemType)
+    .sort((a, b) => (a.capacityKw ?? 0) - (b.capacityKw ?? 0))
 
   useEffect(() => {
     Promise.all([getCustomers(), getKits()])
@@ -147,11 +163,20 @@ function NewQuoteModal({ onClose, onCreated }) {
           options={customers.map((c) => ({ value: c._id, label: `${c.name} (${c.phone})` }))}
         />
         <Select
+          label="System type"
+          value={systemType}
+          onChange={(e) => {
+            setSystemType(e.target.value)
+            setKit('') // the picked kit may not match the new type
+          }}
+          options={SYSTEM_TYPES}
+        />
+        <Select
           label="Kit"
           value={kit}
           onChange={(e) => setKit(e.target.value)}
           placeholder="Pick a kit"
-          options={kits.map((k) => ({ value: k._id, label: `${k.name} - ${formatCurrency(k.price)}` }))}
+          options={matchingKits.map((k) => ({ value: k._id, label: `${k.name} - ${formatCurrency(k.price)}` }))}
         />
       </form>
     </Modal>
@@ -210,7 +235,13 @@ function OrderModal({ id, onClose, onChanged }) {
   const pending = order.total - order.amountPaid
 
   return (
-    <Modal open onClose={onClose} title={order.code} description={order.customer.name} size="lg">
+    <Modal
+      open
+      onClose={onClose}
+      title={order.code}
+      description={`${order.customer.name} · ${systemText(order)}`}
+      size="lg"
+    >
       <div className="space-y-5">
         <div className="flex items-center justify-between">
           <Badge status={order.status} />
