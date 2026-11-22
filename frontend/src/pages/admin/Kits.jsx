@@ -1,9 +1,15 @@
 // /admin/kits - ready-made packages built from products (e.g. "3 kW On-Grid Kit"). Create and delete them.
 import { useEffect, useState } from 'react'
 import { Package, Plus, Trash2, X } from 'lucide-react'
-import { Button, ConfirmDialog, EmptyState, Input, Loader, Modal, PageHeader, Select, useToast } from '@/components/ui'
+import { Badge, Button, ConfirmDialog, EmptyState, Input, Loader, Modal, PageHeader, Select, useToast } from '@/components/ui'
 import { createKit, deleteKit, getKits, getProducts, kitPrice } from '@/api/admin'
 import { formatCurrency } from '@/utils/format'
+
+const SYSTEM_TYPES = [
+  { value: 'on_grid', label: 'On-Grid (connected to the grid)' },
+  { value: 'off_grid', label: 'Off-Grid (with battery backup)' },
+]
+const KW_OPTIONS = [1, 2, 3, 4, 5].map((kw) => ({ value: String(kw), label: `${kw} kW` }))
 
 export default function Kits() {
   const toast = useToast()
@@ -97,7 +103,13 @@ function KitCard({ kit, onDelete }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold text-slate-900">{kit.name}</h3>
-          <p className="mt-1 text-xl font-semibold text-primary-600">{formatCurrency(kit.price)}</p>
+          <div className="mt-1">
+            <Badge tone={kit.systemType === 'off_grid' ? 'purple' : 'blue'}>
+              {kit.capacityKw ? `${kit.capacityKw} kW · ` : ''}
+              {kit.systemType === 'off_grid' ? 'Off-Grid' : 'On-Grid'}
+            </Badge>
+          </div>
+          <p className="mt-2 text-xl font-semibold text-primary-600">{formatCurrency(kit.price)}</p>
         </div>
         <Button variant="ghost" size="icon" onClick={onDelete} aria-label={`Delete ${kit.name}`}>
           <Trash2 className="h-4 w-4 text-danger-500" />
@@ -118,6 +130,8 @@ function KitCard({ kit, onDelete }) {
 // Pop-up form: kit name + rows of (product, quantity). The price is worked out as you type.
 function KitForm({ products, onClose, onCreated }) {
   const [name, setName] = useState('')
+  const [systemType, setSystemType] = useState('on_grid')
+  const [capacityKw, setCapacityKw] = useState('3')
   const [items, setItems] = useState([{ product: '', qty: 1 }])
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -144,7 +158,12 @@ function KitForm({ products, onClose, onCreated }) {
 
     setSaving(true)
     try {
-      await createKit({ name: name.trim(), items: filled.map((i) => ({ product: i.product, qty: Number(i.qty) })) })
+      await createKit({
+        name: name.trim(),
+        systemType,
+        capacityKw: Number(capacityKw),
+        items: filled.map((i) => ({ product: i.product, qty: Number(i.qty) })),
+      })
       onCreated()
     } catch (err) {
       setError(err.message)
@@ -172,6 +191,14 @@ function KitForm({ products, onClose, onCreated }) {
       <form id="kit-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
         {error && <p className="rounded-lg bg-danger-50 px-3 py-2 text-sm text-danger-700">{error}</p>}
         <Input label="Kit name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. 3 kW On-Grid Kit" />
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Select label="System type" value={systemType} onChange={(e) => setSystemType(e.target.value)} options={SYSTEM_TYPES} />
+          <Select label="Size" value={capacityKw} onChange={(e) => setCapacityKw(e.target.value)} options={KW_OPTIONS} />
+        </div>
+        {systemType === 'off_grid' && (
+          <p className="text-xs text-slate-500">Off-Grid kits need a battery - add it to the products below.</p>
+        )}
 
         <div>
           <p className="mb-2 text-sm font-medium text-slate-700">Products in this kit</p>

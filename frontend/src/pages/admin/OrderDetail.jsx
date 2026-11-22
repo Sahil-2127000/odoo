@@ -30,7 +30,9 @@ export default function OrderDetail() {
       <PageHeader
         backTo="/admin/orders"
         title={`Order ${order.code}`}
-        subtitle={`Created on ${formatDate(order.createdAt)}`}
+        subtitle={`${
+          order.systemType ? `${order.capacityKw ?? '?'} kW ${order.systemType === 'off_grid' ? 'Off-Grid' : 'On-Grid'} · ` : ''
+        }Created on ${formatDate(order.createdAt)}`}
         actions={
           <a
             href={`/invoice/order/${order._id}`}
@@ -63,10 +65,28 @@ export default function OrderDetail() {
             </div>
           ))}
         </div>
+        {order.scheduledDate && (
+          <p className="mt-3 text-sm text-slate-600">
+            Installation scheduled for {formatDate(order.scheduledDate)} with {order.assignedTechnician?.name ?? 'a technician'}.
+          </p>
+        )}
         {order.installedAt && (
-          <p className="mt-3 text-sm text-slate-600">Installed on {formatDate(order.installedAt)} (warranty starts from this date).</p>
+          <p className="mt-1 text-sm text-slate-600">Installed on {formatDate(order.installedAt)} (warranty starts from this date).</p>
         )}
       </Card>
+
+      {/* Proof of the job: photo the technician uploaded when marking it installed */}
+      {order.installationPhoto && (
+        <Card title="Installation photo" subtitle="Uploaded by the technician from site" className="mb-6">
+          <a href={order.installationPhoto} target="_blank" rel="noreferrer">
+            <img
+              src={order.installationPhoto}
+              alt={`Installed system for ${order.code}`}
+              className="max-h-80 rounded-lg border border-slate-200 object-contain"
+            />
+          </a>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Items */}
