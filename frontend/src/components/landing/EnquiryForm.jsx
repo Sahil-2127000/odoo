@@ -10,6 +10,7 @@ function validate(form) {
   const errors = {}
   if (!form.name.trim()) errors.name = 'Please enter your name'
   if (!/^\d{10}$/.test(form.phone)) errors.phone = 'Enter a 10-digit mobile number'
+  if (form.email && !/^\S+@\S+\.\S+$/.test(form.email)) errors.email = 'Enter a valid email'
   if (!form.city.trim()) errors.city = 'Please enter your address or city'
   if (!form.monthlyBill || Number(form.monthlyBill) <= 0) errors.monthlyBill = 'Please enter your monthly bill'
   return errors
@@ -46,6 +47,7 @@ export default function EnquiryForm({ form, setForm }) {
       const systemLabel = form.systemType === 'off_grid' ? 'Off-Grid' : 'On-Grid'
       const enquiry = await submitEnquiry({
         name: form.name.trim(),
+        email: form.email.trim() || undefined, // their customer-portal login is emailed here
         phone: form.phone,
         city: form.city.trim(),
         note: `Wants a ${form.capacityKw} kW ${systemLabel} system. Monthly bill about Rs ${form.monthlyBill}.`,
@@ -98,6 +100,12 @@ export default function EnquiryForm({ form, setForm }) {
               <p className="mt-4 inline-block border-2 border-dashed border-success-500 px-6 py-3 font-mono text-2xl font-bold text-success-700">
                 {referenceNumber}
               </p>
+              {form.email && (
+                <p className="mt-4 text-sm text-slate-600">
+                  We have emailed your customer-portal login to <strong>{form.email}</strong>. Use it to follow your order,
+                  warranty and invoices.
+                </p>
+              )}
               <div className="mt-8">
                 <SlabButton variant="dark" onClick={startAgain}>Send another enquiry</SlabButton>
               </div>
@@ -115,6 +123,16 @@ export default function EnquiryForm({ form, setForm }) {
                 onChange={handleChange}
                 error={errors.phone}
                 required
+              />
+
+              <Input
+                label="Email"
+                name="email"
+                type="email"
+                placeholder="We send your customer-portal login here"
+                value={form.email}
+                onChange={handleChange}
+                error={errors.email}
               />
 
               <Input label="Address / City" name="city" value={form.city} onChange={handleChange} error={errors.city} required />

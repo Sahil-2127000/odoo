@@ -78,6 +78,7 @@ export const FAQS = [
 export const EMPTY_ENQUIRY = {
   name: '',
   phone: '',
+  email: '',
   city: '',
   capacityKw: 3,
   systemType: 'on_grid',

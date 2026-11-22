@@ -1,8 +1,6 @@
 const nodemailer = require("nodemailer");
 require("dotenv").config();
 
-// Same setup as the StudyNotion project: MAIL_HOST (e.g. smtp.gmail.com), MAIL_USER, MAIL_PASS
-// (for Gmail, an "App password"). If they are not set, nothing is sent and the login is printed in the console.
 const sendLoginEmail = async ({ to, name, password }) => {
   if (!process.env.MAIL_HOST || !process.env.MAIL_USER || !process.env.MAIL_PASS) {
     console.log(`[mail not configured] login for ${name}: ${to} / ${password}`);

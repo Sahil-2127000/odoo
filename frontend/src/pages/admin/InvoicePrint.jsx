@@ -5,21 +5,24 @@ import { useParams } from 'react-router-dom'
 import { Printer, Sun } from 'lucide-react'
 import { Button, Loader } from '@/components/ui'
 import { getInvoice } from '@/api/invoices'
-import { statusLabel } from '@/constants/status'
+import { getMyOrder } from '@/api/portal'
+import { useAuth } from '@/context/AuthContext'
+import { ROLES, statusLabel } from '@/constants/status'
 import { formatCurrency, formatDate } from '@/utils/format'
 
 const GST_RATE = 0.18 // order totals include 18% GST (9% CGST + 9% SGST)
 
 export default function InvoicePrint() {
   const { type, id } = useParams()
+  const { role } = useAuth()
   const [doc, setDoc] = useState(undefined) // undefined = loading, null = not found
   const [error, setError] = useState('')
 
   useEffect(() => {
-    getInvoice(type, id)
-      .then(setDoc)
-      .catch((err) => setError(err.message))
-  }, [type, id])
+    // customers load their own order through the portal API; staff use the normal one
+    const load = role === ROLES.CUSTOMER ? getMyOrder(id) : getInvoice(type, id)
+    load.then(setDoc).catch((err) => setError(err.message))
+  }, [type, id, role])
 
   if (error) return <Message text={error} />
   if (doc === undefined) return <Loader fullPage label="Loading invoice..." />
