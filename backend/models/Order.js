@@ -4,6 +4,8 @@ const orderSchema = new mongoose.Schema(
   {
     code: { type: String, required: true, unique: true }, // OR-1001
     customer: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", required: true },
+    systemType: { type: String, enum: ["on_grid", "off_grid"] }, // copied from the kit
+    capacityKw: { type: Number },                                 // copied from the kit
     items: [
       {
         product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },

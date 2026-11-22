@@ -41,19 +41,29 @@ const seed = async () => {
     // 3. products
     const panel = await Product.create({ name: "Solar Panel 540W", category: "panel", costPrice: 11800, sellPrice: 14500, stock: 40, minStock: 20, warrantyYears: 25 });
     const inverter = await Product.create({ name: "Inverter 5kW", category: "inverter", costPrice: 51000, sellPrice: 62000, stock: 4, minStock: 5, warrantyYears: 10 });
-    await Product.create({ name: "Lithium Battery 5kWh", category: "battery", costPrice: 118000, sellPrice: 145000, stock: 2, minStock: 3, warrantyYears: 8 });
+    const inverter3 = await Product.create({ name: "Inverter 3kW", category: "inverter", costPrice: 36000, sellPrice: 44000, stock: 6, minStock: 3, warrantyYears: 10 });
+    const battery = await Product.create({ name: "Lithium Battery 5kWh", category: "battery", costPrice: 118000, sellPrice: 145000, stock: 2, minStock: 3, warrantyYears: 8 });
     const structure = await Product.create({ name: "Mounting Structure", category: "other", costPrice: 4200, sellPrice: 5600, stock: 50, minStock: 10, warrantyYears: 10 });
 
-    // 4. kit: 10 panels + 1 inverter + 5 structures
-    const kit = await Kit.create({
-      name: "5 kW On-Grid Kit",
-      items: [
-        { product: panel._id, qty: 10 },
-        { product: inverter._id, qty: 1 },
-        { product: structure._id, qty: 5 },
-      ],
-      price: 235000, // 10×14500 + 62000 + 5×5600
-    });
+    // 4. kits: On-Grid, and Off-Grid = same parts + a battery for backup
+    const kit3 = [
+      { product: panel._id, qty: 6 },
+      { product: inverter3._id, qty: 1 },
+      { product: structure._id, qty: 3 },
+    ];
+    const kit5 = [
+      { product: panel._id, qty: 10 },
+      { product: inverter._id, qty: 1 },
+      { product: structure._id, qty: 5 },
+    ];
+    const withBattery = (items) => [...items, { product: battery._id, qty: 1 }];
+
+    await Kit.create([
+      { name: "3 kW On-Grid Kit", systemType: "on_grid", capacityKw: 3, items: kit3, price: 147800 },              // 6×14500 + 44000 + 3×5600
+      { name: "3 kW Off-Grid Kit", systemType: "off_grid", capacityKw: 3, items: withBattery(kit3), price: 292800 }, // + 145000 battery
+      { name: "5 kW On-Grid Kit", systemType: "on_grid", capacityKw: 5, items: kit5, price: 235000 },               // 10×14500 + 62000 + 5×5600
+      { name: "5 kW Off-Grid Kit", systemType: "off_grid", capacityKw: 5, items: withBattery(kit5), price: 380000 }, // + 145000 battery
+    ]);
 
     // 5. customers
     const c1 = await Customer.create({ code: "CU-1001", name: "Harpreet Singh", phone: "9815488213", email: "harpreet@gmail.com", address: "112 Model Town, Ludhiana" });
@@ -70,16 +80,18 @@ const seed = async () => {
     const total = Math.round(235000 * 1.18); // 277300 incl. 18% GST
     const totalCost = 190000;                // 10×11800 + 51000 + 5×4200
 
-    const o1 = await Order.create({ code: "OR-1001", customer: c1._id, items, total, totalCost, amountPaid: total, status: "installed", installedAt: daysAgo(12) });
-    await Order.create({ code: "OR-1002", customer: c2._id, items, total, totalCost, amountPaid: 150000, status: "delivered" });
-    await Order.create({ code: "OR-1003", customer: c3._id, items, total, totalCost, amountPaid: 50000, status: "confirmed" });
-    await Order.create({ code: "OR-1004", customer: c4._id, items, total, totalCost, amountPaid: 0, status: "quoted" });
+    const system = { systemType: "on_grid", capacityKw: 5 };
+
+    const o1 = await Order.create({ code: "OR-1001", customer: c1._id, ...system, items, total, totalCost, amountPaid: total, status: "installed", installedAt: daysAgo(12) });
+    await Order.create({ code: "OR-1002", customer: c2._id, ...system, items, total, totalCost, amountPaid: 150000, status: "delivered" });
+    await Order.create({ code: "OR-1003", customer: c3._id, ...system, items, total, totalCost, amountPaid: 50000, status: "confirmed" });
+    await Order.create({ code: "OR-1004", customer: c4._id, ...system, items, total, totalCost, amountPaid: 0, status: "quoted" });
 
     // 7. enquiries
     await Enquiry.create([
-      { code: "EN-1001", name: "Amandeep Kaur", phone: "9814022751", city: "Ludhiana", status: "new", note: "Wants solar for 2-floor house" },
-      { code: "EN-1002", name: "Vikram Malhotra", phone: "9872261099", city: "Jalandhar", status: "follow_up", note: "Wants EMI options", nextFollowUp: new Date() },
-      { code: "EN-1003", name: "Anil Sood", phone: "9417056631", city: "Khanna", status: "lost", note: "Budget too low" },
+      { code: "EN-1001", name: "Amandeep Kaur", phone: "9814022751", city: "Ludhiana", systemType: "off_grid", capacityKw: 3, status: "new", note: "Wants solar for 2-floor house, frequent power cuts" },
+      { code: "EN-1002", name: "Vikram Malhotra", phone: "9872261099", city: "Jalandhar", systemType: "on_grid", capacityKw: 5, status: "follow_up", note: "Wants EMI options", nextFollowUp: new Date() },
+      { code: "EN-1003", name: "Anil Sood", phone: "9417056631", city: "Khanna", systemType: "on_grid", capacityKw: 3, status: "lost", note: "Budget too low" },
     ]);
 
     // 8. complaint on the installed order, assigned to technician
