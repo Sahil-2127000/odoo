@@ -40,7 +40,8 @@ exports.getAdminDashboard = async (req, res) => {
       status: { $in: ["confirmed", "packed", "dispatched", "delivered"] },
     });
     const installedOrders = await Order.countDocuments({ status: "installed" });
-    const openTickets = await Ticket.countDocuments({ status: { $ne: "resolved" } });
+    // a ticket stays open until the customer confirms the repair works
+    const openTickets = await Ticket.countDocuments({ status: { $ne: "confirmed" } });
 
     const products = await Product.find();
     const lowStockCount = products.filter((p) => p.stock < p.minStock).length;

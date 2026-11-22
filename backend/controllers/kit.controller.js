@@ -2,10 +2,11 @@ const Kit = require("../models/Kit");
 const Product = require("../models/Product");
 
 // POST /api/v1/kits
-// body: { "name": "5 kW On-Grid Kit", "items": [ { "product": "<id>", "qty": 10 }, ... ] }
+// body: { "name": "5 kW On-Grid Kit", "systemType": "on_grid", "capacityKw": 5,
+//         "items": [ { "product": "<id>", "qty": 10 }, ... ] }
 exports.createKit = async (req, res) => {
   try {
-    const { name, items } = req.body;
+    const { name, items, systemType, capacityKw } = req.body;
 
     if (!name || !items || items.length === 0) {
       return res.status(400).json({
@@ -30,7 +31,7 @@ exports.createKit = async (req, res) => {
       price = price + product.sellPrice * item.qty;
     }
 
-    const kit = await Kit.create({ name, items, price });
+    const kit = await Kit.create({ name, systemType, capacityKw, items, price });
 
     return res.status(201).json({
       success: true,

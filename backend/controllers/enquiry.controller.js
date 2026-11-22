@@ -6,7 +6,7 @@ const generateCode = require("../util/generateCode.util");
 exports.createEnquiry = async (req, res) => {
   try {
     
-    const { name, phone, city, note } = req.body;
+    const { name, phone, city, note, systemType, capacityKw } = req.body;
 
     if (!name || !phone) {
       return res.status(400).json({
@@ -21,6 +21,8 @@ exports.createEnquiry = async (req, res) => {
       phone,
       city,
       note,
+      systemType,
+      capacityKw,
     });
 
     return res.status(201).json({

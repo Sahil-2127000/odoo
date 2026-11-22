@@ -6,6 +6,8 @@ const enquirySchema = new mongoose.Schema(
     name: { type: String, required: true },
     phone: { type: String, required: true },
     city: { type: String },
+    systemType: { type: String, enum: ["on_grid", "off_grid"] }, // what the customer asked for
+    capacityKw: { type: Number },                                 // 1 to 5
     status: {
       type: String,
       enum: ["new", "follow_up", "converted", "lost"],
