@@ -1,15 +1,19 @@
+const bcrypt = require("bcrypt");
 const Enquiry = require("../models/Enquiry");
 const Customer = require("../models/Customer");
 const Kit = require("../models/Kit");
 const User = require("../models/User");
 const generateCode = require("../util/generateCode.util");
 const { createQuoteFromKit } = require("../util/quote.util");
+const { sendLoginEmail } = require("../util/mail.util");
+
+// every customer starts with this password (kept simple for the demo)
+const CUSTOMER_PASSWORD = "password123";
 
 // POST /api/v1/enquiries
 exports.createEnquiry = async (req, res) => {
   try {
-    
-    const { name, phone, city, note, systemType, capacityKw } = req.body;
+    const { name, phone, email, city, note, systemType, capacityKw } = req.body;
 
     if (!name || !phone) {
       return res.status(400).json({
@@ -22,15 +26,33 @@ exports.createEnquiry = async (req, res) => {
       code: await generateCode(Enquiry, "EN"),
       name,
       phone,
+      email,
       city,
       note,
       systemType,
       capacityKw,
     });
 
+    // give the customer a portal login and email it to them (only the first time)
+    let loginSent = false;
+    if (email && !(await User.findOne({ email: email.toLowerCase() }))) {
+      await User.create({
+        name,
+        email,
+        phone,
+        password: await bcrypt.hash(CUSTOMER_PASSWORD, 10),
+        role: "customer",
+      });
+      try {
+        loginSent = await sendLoginEmail({ to: email, name, password: CUSTOMER_PASSWORD });
+      } catch (mailError) {
+        console.error("Could not send login email:", mailError.message); // the enquiry is still saved
+      }
+    }
+
     return res.status(201).json({
       success: true,
-      message: "Enquiry created",
+      message: loginSent ? "Enquiry created. Login details sent to your email" : "Enquiry created",
       data: enquiry,
     });
   } catch (error) {
@@ -207,10 +229,11 @@ exports.getMySurveys = async (req, res) => {
 };
 
 // PATCH /api/v1/enquiries/:id/survey   (technician records the result on site)
-// body: { surveyStatus: "approved" | "rejected", surveyDirection, surveyTilt, surveyCableMeters, surveyNotes }
+// body: { surveyStatus: "approved" | "rejected", surveyDirection, surveyTilt, surveyCableMeters, surveyNotes,
+//         systemType, capacityKw }   <- the system the technician recommends after seeing the roof
 exports.updateSurvey = async (req, res) => {
   try {
-    const { surveyStatus, surveyDirection, surveyTilt, surveyCableMeters, surveyNotes } = req.body;
+    const { surveyStatus, surveyDirection, surveyTilt, surveyCableMeters, surveyNotes, systemType, capacityKw } = req.body;
 
     if (!["approved", "rejected"].includes(surveyStatus)) {
       return res.status(400).json({
@@ -248,6 +271,11 @@ exports.updateSurvey = async (req, res) => {
     enquiry.surveyTilt = surveyTilt;
     enquiry.surveyCableMeters = surveyCableMeters;
     if (surveyNotes !== undefined) enquiry.surveyNotes = surveyNotes;
+
+    // the technician can change the system to what really fits the roof;
+    // the quote is then made from this system's kit
+    if (systemType) enquiry.systemType = systemType;
+    if (capacityKw) enquiry.capacityKw = Number(capacityKw);
 
     // survey rejected -> lead lost, same as the paper flow
     if (surveyStatus === "rejected") enquiry.status = "lost";
@@ -300,13 +328,18 @@ exports.convertEnquiry = async (req, res) => {
       code: await generateCode(Customer, "CU"),
       name: enquiry.name,
       phone: enquiry.phone,
-      email: req.body.email,
+      email: req.body.email || enquiry.email,
       address: req.body.address || enquiry.city,
       enquiry: enquiry._id,
     });
 
     enquiry.status = "converted";
     await enquiry.save();
+
+    // connect their portal login to this customer, so they see their orders
+    if (customer.email) {
+      await User.updateOne({ email: customer.email, role: "customer" }, { customer: customer._id });
+    }
 
     // make the quote straight away from the kit the customer asked for,
     // with the cable length the technician measured

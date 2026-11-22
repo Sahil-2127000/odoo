@@ -1,10 +1,7 @@
 const Ticket = require("../models/Ticket");
 const Order = require("../models/Order");
 const User = require("../models/User");
-const generateCode = require("../util/generateCode.util");
-const { isUnderWarranty } = require("../util/warranty.util");
-
-const OUT_OF_WARRANTY_CHARGE = 500; // flat parts + labour charge
+const { openTicket } = require("../util/ticket.util");
 
 // POST /api/v1/tickets/public   body: { phone, orderCode, issue }   (no login)
 exports.createTicket = async (req, res) => {
@@ -37,17 +34,8 @@ exports.createTicket = async (req, res) => {
       });
     }
 
-    // check warranty automatically so the bill amount is decided up front
-    const underWarranty = isUnderWarranty(order);
-
-    const ticket = await Ticket.create({
-      code: await generateCode(Ticket, "TK"),
-      customer: order.customer._id,
-      order: order._id,
-      issue,
-      underWarranty,
-      billAmount: underWarranty ? 0 : OUT_OF_WARRANTY_CHARGE,
-    });
+    // warranty is checked automatically so the bill amount is decided up front
+    const ticket = await openTicket(order, issue);
 
     return res.status(201).json({
       success: true,

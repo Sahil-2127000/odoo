@@ -178,8 +178,21 @@ exports.updateOrderStatus = async (req, res) => {
           message: "A photo of the installed panel is required",
         });
       }
+
+      // the technician can collect the remaining balance on site (cash / UPI).
+      // An online payment gateway could be plugged in at this step later.
+      const amountCollected = Number(req.body.amountCollected) || 0;
+      const pending = order.total - order.amountPaid;
+      if (amountCollected < 0 || amountCollected > pending) {
+        return res.status(400).json({
+          success: false,
+          message: `Amount collected must be between 0 and the balance (₹${pending})`,
+        });
+      }
+
       order.installationPhoto = await uploadPhoto(photo);
       order.installedAt = new Date();
+      order.amountPaid = order.amountPaid + amountCollected;
     }
 
     order.status = status;
@@ -380,7 +393,7 @@ exports.trackOrder = async (req, res) => {
         systemType: order.systemType,
         capacityKw: order.capacityKw,
         total: order.total,
-        amountPaid: order.amountPaid, // pending = total - amountPaid (for "Pay now")
+        amountPaid: order.amountPaid, // balance shown to the customer = total - amountPaid
         installedAt: order.installedAt,
         items,
       },
