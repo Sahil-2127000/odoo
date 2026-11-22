@@ -6,7 +6,7 @@ export const USER_KEY = 'solarconnect_user'
 
 // One shared Axios instance for the whole app. Never create another one.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5001/api/v1',
 })
 
 // 1) Before every request: attach the login token

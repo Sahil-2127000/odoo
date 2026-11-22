@@ -28,7 +28,7 @@ export default function Footer() {
               </li>
             ))}
             <li><Link to="/track" className="hover:text-white">Track my order</Link></li>
-            <li><Link to="/login" className="hover:text-white">Staff login</Link></li>
+            <li><Link to="/login" className="hover:text-white">Sign in</Link></li>
           </ul>
         </div>
 

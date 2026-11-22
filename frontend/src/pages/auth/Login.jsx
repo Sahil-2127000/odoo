@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { Lock, Mail, Sun } from 'lucide-react'
+import { Eye, EyeOff, Lock, Mail, Sun } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { ROLE_HOME, ROLE_LABELS } from '@/constants/status'
 import { mockUsers } from '@/mocks/users'
@@ -14,6 +14,7 @@ export default function Login() {
   const { login, isAuthenticated, homePath } = useAuth()
   const navigate = useNavigate()
   const [form, setForm] = useState({ email: '', password: '' })
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -69,7 +70,25 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
             <Input label="Email" name="email" type="email" icon={Mail} value={form.email} onChange={handleChange} required />
-            <Input label="Password" name="password" type="password" icon={Lock} value={form.password} onChange={handleChange} required />
+            <Input
+              label="Password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              icon={Lock}
+              value={form.password}
+              onChange={handleChange}
+              required
+              trailing={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="cursor-pointer rounded p-1.5 text-slate-400 hover:text-slate-700"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              }
+            />
             {error && <p className="bg-danger-50 px-3 py-2 text-sm text-danger-700">{error}</p>}
             <Button type="submit" fullWidth size="lg" loading={loading}>
               Log in

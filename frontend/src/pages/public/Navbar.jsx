@@ -30,7 +30,7 @@ export default function Navbar() {
     : 'border-slate-900 hover:bg-slate-900 hover:text-white'
 
   const staffLink = isAuthenticated ? homePath : '/login'
-  const staffText = isAuthenticated ? 'Dashboard' : 'Staff login'
+  const staffText = isAuthenticated ? 'Dashboard' : 'Sign in' // staff and customers both sign in here
 
   return (
     <header className={`${onHome ? 'fixed' : 'sticky'} inset-x-0 top-0 z-50 transition-colors duration-300 ${barStyle}`}>
