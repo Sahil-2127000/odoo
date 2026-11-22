@@ -8,6 +8,11 @@ import { formatDate } from '@/utils/format'
 import TechTabs from './TechTabs'
 
 const DIRECTIONS = ['North', 'North-East', 'East', 'South-East', 'South', 'South-West', 'West', 'North-West']
+const SYSTEM_TYPES = [
+  { value: 'on_grid', label: 'On-Grid' },
+  { value: 'off_grid', label: 'Off-Grid (battery)' },
+]
+const SIZES = [1, 2, 3, 4, 5].map((kw) => ({ value: String(kw), label: `${kw} kW` }))
 
 const systemText = (e) =>
   e.systemType ? `${e.capacityKw ?? '?'} kW ${e.systemType === 'off_grid' ? 'Off-Grid' : 'On-Grid'}` : 'Not given'
@@ -46,6 +51,9 @@ export default function MySurveys() {
 
 function SurveyCard({ survey, onDone }) {
   const toast = useToast()
+  // the system starts as what the customer asked for; the technician can change it after seeing the roof
+  const [systemType, setSystemType] = useState(survey.systemType || 'on_grid')
+  const [capacityKw, setCapacityKw] = useState(String(survey.capacityKw || 3))
   const [direction, setDirection] = useState('South')
   const [tilt, setTilt] = useState('')
   const [cable, setCable] = useState('')
@@ -64,6 +72,8 @@ function SurveyCard({ survey, onDone }) {
         surveyTilt: tilt === '' ? undefined : Number(tilt),
         surveyCableMeters: cable === '' ? undefined : Number(cable),
         surveyNotes: notes,
+        systemType,
+        capacityKw: Number(capacityKw),
       })
       toast.success(result === 'approved' ? 'Site approved, sales can now make the quote' : 'Site rejected')
       onDone()
@@ -86,8 +96,14 @@ function SurveyCard({ survey, onDone }) {
           <a href={`tel:${survey.phone}`} className="mt-1 inline-flex items-center gap-1 text-xs text-primary-600">
             <Phone className="h-3.5 w-3.5" /> {survey.phone}
           </a>
-          <p className="mt-1 text-xs text-slate-600">Needs: {systemText(survey)}</p>
+          <p className="mt-1 text-xs text-slate-600">Customer asked for: {systemText(survey)}</p>
           {survey.note && <p className="mt-1 text-xs text-slate-500">Sales note: {survey.note}</p>}
+        </div>
+
+        {/* Recommended system - the quote is made from this */}
+        <div className="grid grid-cols-2 gap-3">
+          <Select label="System" value={systemType} onChange={(e) => setSystemType(e.target.value)} options={SYSTEM_TYPES} />
+          <Select label="Size" value={capacityKw} onChange={(e) => setCapacityKw(e.target.value)} options={SIZES} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
