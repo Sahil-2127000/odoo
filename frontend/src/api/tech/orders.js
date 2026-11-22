@@ -8,5 +8,7 @@ import api from '@/api/axios'
  */
 export const getDeliveredOrders = () => api.get('/orders', { params: { status: 'delivered' } })
 
-/** PATCH /orders/:id/status   body: { status: "installed", photo: "data:image/...;base64,..." } */
-export const markInstalled = (id, photo) => api.patch(`/orders/${id}/status`, { status: 'installed', photo })
+/** PATCH /orders/:id/status   body: { status: "installed", photo: "data:image/...;base64,...", amountCollected }
+ *  amountCollected = balance the technician took on site (cash / UPI), added to the order's payments */
+export const markInstalled = (id, photo, amountCollected) =>
+  api.patch(`/orders/${id}/status`, { status: 'installed', photo, amountCollected })

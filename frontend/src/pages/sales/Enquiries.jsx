@@ -1,8 +1,11 @@
-// /sales/enquiries - incoming leads, the site-survey approval step, and converting to a customer.
+// /sales/enquiries - incoming leads, assigning the site survey to a technician,
+// and converting to a customer (which also creates the quote from the matching kit).
 import { useEffect, useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { Badge, Button, DataTable, Input, Modal, PageHeader, Select, Tabs, Textarea, useToast } from '@/components/ui'
-import { getEnquiries, updateEnquiry, updateSurvey, convertEnquiry } from '@/api/sales/enquiries'
+import { assignSurvey, convertEnquiry, getEnquiries, updateEnquiry } from '@/api/sales/enquiries'
+import { getTechnicians } from '@/api/sales/tickets'
+import { getOrders } from '@/api/sales/orders'
 import { ENQUIRY_STATUSES, statusLabel } from '@/constants/status'
 import { formatDate } from '@/utils/format'
 
@@ -40,7 +43,16 @@ export default function Enquiries() {
     { key: 'phone', header: 'Phone' },
     { key: 'city', header: 'City' },
     { key: 'systemType', header: 'Needs', render: systemText },
-    { key: 'surveyStatus', header: 'Survey', render: (r) => <Badge status={r.surveyStatus} /> },
+    {
+      key: 'surveyStatus',
+      header: 'Survey',
+      render: (r) => (
+        <span className="inline-flex items-center gap-2">
+          <Badge status={r.surveyStatus} />
+          {r.surveyTechnician && <span className="text-xs text-slate-500">{r.surveyTechnician.name}</span>}
+        </span>
+      ),
+    },
     { key: 'nextFollowUp', header: 'Next follow-up', render: (r) => formatDate(r.nextFollowUp) },
     { key: 'status', header: 'Status', render: (r) => <Badge status={r.status} /> },
   ]
@@ -74,11 +86,32 @@ function EnquiryModal({ enquiry, onClose, onUpdated }) {
   const [nextFollowUp, setNextFollowUp] = useState(enquiry.nextFollowUp ? enquiry.nextFollowUp.slice(0, 10) : '')
   const [savingDetails, setSavingDetails] = useState(false)
 
-  const [surveyStatus, setSurveyStatus] = useState(enquiry.surveyStatus)
-  const [surveyNotes, setSurveyNotes] = useState(enquiry.surveyNotes || '')
-  const [savingSurvey, setSavingSurvey] = useState(false)
+  // survey assignment
+  const [technicians, setTechnicians] = useState([]) // [{ _id, name, surveys, installs }]
+  const [technician, setTechnician] = useState(enquiry.surveyTechnician?._id || '')
+  const [surveyDate, setSurveyDate] = useState(enquiry.surveyDate ? enquiry.surveyDate.slice(0, 10) : '')
+  const [assigning, setAssigning] = useState(false)
 
   const [converting, setConverting] = useState(false)
+
+  // Count each technician's pending work so sales can pick whoever is free
+  useEffect(() => {
+    if (enquiry.surveyStatus !== 'pending') return
+    Promise.all([getTechnicians(), getEnquiries(), getOrders('delivered')])
+      .then(([techs, enquiries, orders]) => {
+        setTechnicians(
+          techs
+            .filter((t) => t.isActive)
+            .map((t) => ({
+              ...t,
+              surveys: enquiries.filter((e) => e.surveyStatus === 'pending' && e.surveyTechnician?._id === t._id).length,
+              installs: orders.filter((o) => o.assignedTechnician?._id === t._id).length,
+            })),
+        )
+      })
+      .catch((err) => toast.error(err.message))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function saveDetails(e) {
     e.preventDefault()
@@ -94,25 +127,30 @@ function EnquiryModal({ enquiry, onClose, onUpdated }) {
     }
   }
 
-  async function saveSurvey(e) {
+  async function assign(e) {
     e.preventDefault()
-    setSavingSurvey(true)
+    if (!technician || !surveyDate) return
+    setAssigning(true)
     try {
-      const updated = await updateSurvey(enquiry._id, { surveyStatus, surveyNotes })
-      toast.success('Survey updated')
+      const updated = await assignSurvey(enquiry._id, { surveyTechnician: technician, surveyDate })
+      toast.success(`Survey assigned to ${updated.surveyTechnician.name}`)
       onUpdated(updated)
     } catch (err) {
       toast.error(err.message)
     } finally {
-      setSavingSurvey(false)
+      setAssigning(false)
     }
   }
 
   async function convert() {
     setConverting(true)
     try {
-      await convertEnquiry(enquiry._id, {})
-      toast.success(`${enquiry.name} is now a customer`)
+      const { quote } = await convertEnquiry(enquiry._id, {})
+      toast.success(
+        quote
+          ? `${enquiry.name} is now a customer. Quote ${quote.code} is ready in Orders`
+          : `${enquiry.name} is now a customer. No matching kit, create the quote in Orders`,
+      )
       onUpdated({ ...enquiry, status: 'converted' })
     } catch (err) {
       toast.error(err.message)
@@ -121,7 +159,10 @@ function EnquiryModal({ enquiry, onClose, onUpdated }) {
     }
   }
 
-  const canConvert = surveyStatus === 'approved' && enquiry.status !== 'converted'
+  const canConvert = enquiry.surveyStatus === 'approved' && enquiry.status !== 'converted'
+  const waitingFor = !enquiry.surveyTechnician
+    ? 'Assign a technician for the site survey first.'
+    : "Waiting for the technician's survey result."
 
   return (
     <Modal
@@ -154,39 +195,81 @@ function EnquiryModal({ enquiry, onClose, onUpdated }) {
           </Button>
         </form>
 
-        <form onSubmit={saveSurvey} className="space-y-4 border-t border-slate-100 pt-5">
+        <div className="space-y-4 border-t border-slate-100 pt-5">
           <h3 className="text-xs font-semibold tracking-wide text-slate-500 uppercase">Site survey</h3>
-          <Select
-            label="Survey result"
-            value={surveyStatus}
-            onChange={(e) => setSurveyStatus(e.target.value)}
-            options={[
-              { value: 'pending', label: 'Pending' },
-              { value: 'approved', label: 'Approved' },
-              { value: 'rejected', label: 'Rejected' },
-            ]}
-          />
-          <Textarea
-            label="Survey notes"
-            placeholder="Roof direction, tilt, cable length..."
-            value={surveyNotes}
-            onChange={(e) => setSurveyNotes(e.target.value)}
-            rows={2}
-          />
-          <Button type="submit" variant="secondary" size="sm" loading={savingSurvey}>
-            Save survey
-          </Button>
-        </form>
+
+          {enquiry.surveyStatus === 'pending' ? (
+            // Sales picks the technician + date; the technician records the result on their phone
+            <form onSubmit={assign} className="space-y-4">
+              {enquiry.surveyTechnician && (
+                <p className="rounded-lg bg-info-50 px-3 py-2 text-sm text-info-700">
+                  Assigned to {enquiry.surveyTechnician.name} for {formatDate(enquiry.surveyDate)}. Waiting for their result.
+                </p>
+              )}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Select
+                  label="Technician"
+                  value={technician}
+                  onChange={(e) => setTechnician(e.target.value)}
+                  placeholder="Pick whoever is free"
+                  options={technicians.map((t) => ({
+                    value: t._id,
+                    label: `${t.name} (${t.surveys} survey${t.surveys === 1 ? '' : 's'}, ${t.installs} install${t.installs === 1 ? '' : 's'} pending)`,
+                  }))}
+                />
+                <Input label="Visit date" type="date" value={surveyDate} onChange={(e) => setSurveyDate(e.target.value)} />
+              </div>
+              <Button type="submit" variant="secondary" size="sm" loading={assigning} disabled={!technician || !surveyDate}>
+                {enquiry.surveyTechnician ? 'Re-assign survey' : 'Assign survey'}
+              </Button>
+            </form>
+          ) : (
+            <SurveyResult enquiry={enquiry} />
+          )}
+        </div>
 
         <div className="border-t border-slate-100 pt-5">
           <Button icon={ArrowRight} onClick={convert} loading={converting} disabled={!canConvert} fullWidth>
-            {enquiry.status === 'converted' ? 'Already converted' : 'Convert to customer'}
+            {enquiry.status === 'converted' ? 'Already converted' : 'Convert to customer & make quote'}
           </Button>
           {!canConvert && enquiry.status !== 'converted' && (
-            <p className="mt-2 text-center text-xs text-slate-500">Approve the site survey first.</p>
+            <p className="mt-2 text-center text-xs text-slate-500">
+              {enquiry.surveyStatus === 'rejected' ? 'The site was rejected in the survey.' : waitingFor}
+            </p>
           )}
         </div>
       </div>
     </Modal>
+  )
+}
+
+// What the technician recorded on the roof (read-only for sales)
+function SurveyResult({ enquiry }) {
+  const rows = [
+    ['Roof faces', enquiry.surveyDirection],
+    ['Tilt', enquiry.surveyTilt != null ? `${enquiry.surveyTilt}°` : null],
+    ['Cable needed', enquiry.surveyCableMeters != null ? `${enquiry.surveyCableMeters} m` : null],
+    ['Notes', enquiry.surveyNotes],
+  ]
+  return (
+    <div className="space-y-2 text-sm">
+      <p className="flex flex-wrap items-center gap-2">
+        <Badge status={enquiry.surveyStatus} />
+        <span className="text-slate-600">
+          by {enquiry.surveyTechnician?.name ?? 'technician'}
+          {enquiry.surveyDate && ` on ${formatDate(enquiry.surveyDate)}`}
+        </span>
+      </p>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+        {rows
+          .filter(([, value]) => value)
+          .map(([label, value]) => (
+            <div key={label} className="contents">
+              <dt className="text-slate-500">{label}</dt>
+              <dd className="text-slate-900">{value}</dd>
+            </div>
+          ))}
+      </dl>
+    </div>
   )
 }
