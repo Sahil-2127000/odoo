@@ -12,11 +12,11 @@ export async function getPublicKits() {
 
 /**
  * Landing page "Get a free quote" form.
- * Backend API: POST /enquiries/public  body: { name, phone, city, note }
+ * Backend API: POST /enquiries/public  body: { name, phone, city, note, systemType, capacityKw }
  * Returns the saved enquiry, e.g. { code: 'EN-1004', name, phone, ... }
  */
-export async function submitEnquiry({ name, phone, city, note }) {
-  return api.post('/enquiries/public', { name, phone, city, note })
+export async function submitEnquiry({ name, phone, city, note, systemType, capacityKw }) {
+  return api.post('/enquiries/public', { name, phone, city, note, systemType, capacityKw })
 }
 
 /**
@@ -35,6 +35,24 @@ export async function trackOrder({ phone, code }) {
  */
 export async function reportProblem({ phone, orderCode, issue }) {
   return api.post('/tickets/public', { phone, orderCode, issue })
+}
+
+/**
+ * Online payment, step 1: create a Razorpay order for the amount the customer wants to pay.
+ * Backend API: POST /payments/create-order  body: { phone, orderCode, amount (rupees) }
+ * Returns { razorpayOrderId, amount (paise), currency, key, orderCode, customerName }
+ */
+export async function createPayment({ phone, orderCode, amount }) {
+  return api.post('/payments/create-order', { phone, orderCode, amount })
+}
+
+/**
+ * Online payment, step 2: send Razorpay's reply back so the backend checks it and adds the payment.
+ * Backend API: POST /payments/verify  body: { razorpay_order_id, razorpay_payment_id, razorpay_signature }
+ * Returns { orderCode, paid, pending, paymentId }
+ */
+export async function verifyPayment(razorpayResponse) {
+  return api.post('/payments/verify', razorpayResponse)
 }
 
 /**
