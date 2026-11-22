@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   Check,
   CheckCircle2,
-  CreditCard,
   FileText,
   Home,
   Package,
@@ -20,7 +19,7 @@ import {
 } from 'lucide-react'
 import Navbar from './Navbar'
 import Footer from './Footer'
-import { confirmTicket, createPayment, reportProblem, trackOrder, verifyPayment } from '@/api/public'
+import { confirmTicket, reportProblem, trackOrder } from '@/api/public'
 import { formatCurrency, formatDate } from '@/utils/format'
 import { Badge, Button, Input, Modal, Select, Textarea } from '@/components/ui'
 
@@ -44,19 +43,6 @@ const ISSUE_TYPES = [
 
 // Warranty is valid if its end date is in the future (no end date = not installed yet)
 const isUnderWarranty = (item) => Boolean(item.warrantyEnd) && new Date(item.warrantyEnd) > new Date()
-
-// Loads Razorpay's checkout script once, the first time someone clicks "Pay now"
-function loadRazorpay() {
-  if (window.Razorpay) return Promise.resolve()
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script')
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
-    script.onload = resolve
-    script.onerror = () => reject(new Error('Could not load the payment page. Check your internet and try again.'))
-    document.body.appendChild(script)
-  })
-}
-
 export default function TrackOrder() {
   // Lookup form
   const [phone, setPhone] = useState('')
@@ -75,11 +61,6 @@ export default function TrackOrder() {
   const [submitting, setSubmitting] = useState(false)
   const [newTicket, setNewTicket] = useState(null) // ticket returned by the backend
 
-  // Pay the pending balance online
-  const [payAmount, setPayAmount] = useState('')
-  const [paying, setPaying] = useState(false)
-  const [payMessage, setPayMessage] = useState({ type: '', text: '' })
-
   // Confirm a repair form
   const [confirmCode, setConfirmCode] = useState('')
   const [confirmMessage, setConfirmMessage] = useState({ type: '', text: '' })
@@ -93,9 +74,7 @@ export default function TrackOrder() {
 
     setLoading(true)
     try {
-      const found = await trackOrder({ phone, code })
-      setOrder(found)
-      setPayAmount(String(found.total - found.amountPaid)) // suggest paying the full balance
+      setOrder(await trackOrder({ phone, code }))
     } catch (err) {
       setError(err.message) // e.g. "No order found for this phone and order code"
     } finally {
@@ -112,51 +91,6 @@ export default function TrackOrder() {
     setTickets([])
     setConfirmCode('')
     setConfirmMessage({ type: '', text: '' })
-    setPayAmount('')
-    setPayMessage({ type: '', text: '' })
-  }
-
-  // 1) backend creates a Razorpay order  2) Razorpay pop-up takes the payment
-  // 3) backend verifies it and adds it to the order
-  async function handlePay(e) {
-    e.preventDefault()
-    const amount = Number(payAmount)
-    if (!(amount > 0)) return setPayMessage({ type: 'error', text: 'Enter an amount to pay.' })
-
-    setPaying(true)
-    setPayMessage({ type: '', text: '' })
-    try {
-      await loadRazorpay()
-      const rzpOrder = await createPayment({ phone, orderCode: order.code, amount })
-
-      const checkout = new window.Razorpay({
-        key: rzpOrder.key,
-        amount: rzpOrder.amount, // in paise
-        currency: rzpOrder.currency,
-        order_id: rzpOrder.razorpayOrderId,
-        name: 'SolarConnect',
-        description: `Payment for order ${rzpOrder.orderCode}`,
-        prefill: { name: rzpOrder.customerName, contact: phone },
-        theme: { color: '#ea580c' },
-        handler: async (response) => {
-          try {
-            const result = await verifyPayment(response)
-            setOrder((o) => ({ ...o, amountPaid: o.total - result.pending }))
-            setPayAmount(String(result.pending))
-            setPayMessage({ type: 'success', text: `Payment of ${formatCurrency(result.paid)} received. Thank you!` })
-          } catch (err) {
-            setPayMessage({ type: 'error', text: err.message })
-          } finally {
-            setPaying(false)
-          }
-        },
-        modal: { ondismiss: () => setPaying(false) }, // customer closed the pop-up
-      })
-      checkout.open()
-    } catch (err) {
-      setPayMessage({ type: 'error', text: err.message })
-      setPaying(false)
-    }
   }
 
   function openReport(item) {
@@ -331,7 +265,7 @@ export default function TrackOrder() {
               </div>
             </div>
 
-            {/* Payment: pay the advance or the balance online (Razorpay) */}
+            {/* Payment summary: our team records payments; the balance is collected at installation */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h3 className="text-base font-bold text-slate-900">Payment</h3>
               <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
@@ -349,29 +283,12 @@ export default function TrackOrder() {
                 </div>
               </div>
 
-              {order.status === 'quoted' ? (
-                <p className="mt-4 text-sm text-slate-500">You can pay once our team confirms your quote.</p>
-              ) : order.total - order.amountPaid > 0 ? (
-                <form onSubmit={handlePay} className="mt-4 flex flex-wrap items-end gap-3" noValidate>
-                  <Input
-                    label="Amount to pay (₹)"
-                    type="number"
-                    value={payAmount}
-                    onChange={(e) => setPayAmount(e.target.value)}
-                    className="w-48"
-                  />
-                  <Button type="submit" icon={CreditCard} loading={paying}>
-                    Pay now
-                  </Button>
-                </form>
+              {order.total - order.amountPaid > 0 ? (
+                <p className="mt-4 text-sm text-slate-500">
+                  Pay the advance to our sales team. The balance is collected by our technician on the day of installation.
+                </p>
               ) : (
                 <p className="mt-4 text-sm font-medium text-emerald-700">Fully paid. Thank you!</p>
-              )}
-
-              {payMessage.text && (
-                <p className={`mt-3 text-sm ${payMessage.type === 'success' ? 'text-emerald-700' : 'text-danger-700'}`}>
-                  {payMessage.text}
-                </p>
               )}
             </div>
 
