@@ -106,8 +106,9 @@ const seed = async () => {
 
     const system = { systemType: "on_grid", capacityKw: 5 };
 
-    const o1 = await Order.create({ code: "OR-1001", customer: c1._id, ...system, items, total, totalCost, amountPaid: total, status: "installed", installedAt: daysAgo(12) });
-    await Order.create({ code: "OR-1002", customer: c2._id, ...system, items, total, totalCost, amountPaid: 150000, status: "delivered" });
+    // orders already past dispatch have the serial numbers the warehouse typed in
+    const o1 = await Order.create({ code: "OR-1001", customer: c1._id, ...system, items, total, totalCost, amountPaid: total, status: "installed", installedAt: daysAgo(12), serials: ["INV5-24-0117", "PNL540-24-3301", "PNL540-24-3302"] });
+    await Order.create({ code: "OR-1002", customer: c2._id, ...system, items, total, totalCost, amountPaid: 150000, status: "delivered", serials: ["INV5-24-0121", "PNL540-24-3415", "PNL540-24-3416"] });
     await Order.create({ code: "OR-1003", customer: c3._id, ...system, items, total, totalCost, amountPaid: 50000, status: "confirmed" });
     await Order.create({ code: "OR-1004", customer: c4._id, ...system, items, total, totalCost, amountPaid: 0, status: "quoted" });
 
