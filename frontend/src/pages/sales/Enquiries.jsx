@@ -8,6 +8,10 @@ import { formatDate } from '@/utils/format'
 
 const TABS = ENQUIRY_STATUSES.map((value) => ({ value, label: statusLabel(value) }))
 
+// { capacityKw: 3, systemType: 'off_grid' } -> "3 kW Off-Grid"
+const systemText = (r) =>
+  r.systemType ? `${r.capacityKw ?? '?'} kW ${r.systemType === 'off_grid' ? 'Off-Grid' : 'On-Grid'}` : '—'
+
 export default function Enquiries() {
   const toast = useToast()
   const [tab, setTab] = useState('new')
@@ -35,6 +39,7 @@ export default function Enquiries() {
     { key: 'name', header: 'Name', sortable: true },
     { key: 'phone', header: 'Phone' },
     { key: 'city', header: 'City' },
+    { key: 'systemType', header: 'Needs', render: systemText },
     { key: 'surveyStatus', header: 'Survey', render: (r) => <Badge status={r.surveyStatus} /> },
     { key: 'nextFollowUp', header: 'Next follow-up', render: (r) => formatDate(r.nextFollowUp) },
     { key: 'status', header: 'Status', render: (r) => <Badge status={r.status} /> },
@@ -119,7 +124,13 @@ function EnquiryModal({ enquiry, onClose, onUpdated }) {
   const canConvert = surveyStatus === 'approved' && enquiry.status !== 'converted'
 
   return (
-    <Modal open onClose={onClose} title={enquiry.name} description={`${enquiry.code} · ${enquiry.phone}`} size="lg">
+    <Modal
+      open
+      onClose={onClose}
+      title={enquiry.name}
+      description={`${enquiry.code} · ${enquiry.phone} · Needs ${systemText(enquiry)}`}
+      size="lg"
+    >
       <div className="space-y-6">
         <form onSubmit={saveDetails} className="space-y-4">
           <h3 className="text-xs font-semibold tracking-wide text-slate-500 uppercase">Call notes</h3>
