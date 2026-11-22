@@ -89,6 +89,8 @@ const seed = async () => {
 
     // 5. customers
     const c1 = await Customer.create({ code: "CU-1001", name: "Harpreet Singh", phone: "9815488213", email: "harpreet@gmail.com", address: "112 Model Town, Ludhiana" });
+    // customer portal login for the demo customer (installed order + open complaint)
+    await User.create({ name: "Harpreet Singh", email: "harpreet@gmail.com", phone: "9815488213", password, role: "customer", customer: c1._id });
     const c2 = await Customer.create({ code: "CU-1002", name: "Meena Agarwal", phone: "9781033092", address: "8 Urban Estate, Jalandhar" });
     const c3 = await Customer.create({ code: "CU-1003", name: "Gurdeep Dhillon", phone: "9872261034", address: "45 Sarabha Nagar, Ludhiana" });
     const c4 = await Customer.create({ code: "CU-1004", name: "Sunrise Public School", phone: "9915047820", address: "GT Road, Moga" });
@@ -130,6 +132,7 @@ const seed = async () => {
 
     console.log("✅ Seed complete");
     console.log("Staff logins (password123): admin@ care@ warehouse@ tech@ tech2@solarflow.in");
+    console.log("Customer portal (password123): harpreet@gmail.com");
     console.log("Track order demo: phone 9815488213 + code OR-1001");
     process.exit(0);
   } catch (error) {
