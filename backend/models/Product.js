@@ -5,7 +5,7 @@ const productSchema = new mongoose.Schema(
     name: { type: String, required: true },
     category: {
       type: String,
-      enum: ["panel", "inverter", "battery", "other"],
+      enum: ["panel", "inverter", "battery", "cable", "other"], // cable is sold per metre
       required: true,
     },
     costPrice: { type: Number, required: true }, // what we pay

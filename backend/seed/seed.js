@@ -37,6 +37,8 @@ const seed = async () => {
     const tech = await User.create({
       name: "Gurpreet Singh", email: "tech@solarflow.in", password, role: "technician",
     });
+    // second technician, so sales can choose whoever is free
+    await User.create({ name: "Ravinder Pal", email: "tech2@solarflow.in", password, role: "technician" });
 
     // 3. products
     const panel = await Product.create({ name: "Solar Panel 540W", category: "panel", costPrice: 11800, sellPrice: 14500, stock: 40, minStock: 20, warrantyYears: 25 });
@@ -44,25 +46,45 @@ const seed = async () => {
     const inverter3 = await Product.create({ name: "Inverter 3kW", category: "inverter", costPrice: 36000, sellPrice: 44000, stock: 6, minStock: 3, warrantyYears: 10 });
     const battery = await Product.create({ name: "Lithium Battery 5kWh", category: "battery", costPrice: 118000, sellPrice: 145000, stock: 2, minStock: 3, warrantyYears: 8 });
     const structure = await Product.create({ name: "Mounting Structure", category: "other", costPrice: 4200, sellPrice: 5600, stock: 50, minStock: 10, warrantyYears: 10 });
+    // small parts nobody should have to remember
+    const cable = await Product.create({ name: "DC Cable 4 sq mm (per metre)", category: "cable", costPrice: 45, sellPrice: 60, stock: 500, minStock: 100, warrantyYears: 5 });
+    const box = await Product.create({ name: "AC/DC Distribution Box with switches", category: "other", costPrice: 2800, sellPrice: 3800, stock: 20, minStock: 5, warrantyYears: 2 });
+    const earthing = await Product.create({ name: "Earthing Kit with Lightning Arrester", category: "other", costPrice: 1800, sellPrice: 2500, stock: 25, minStock: 5, warrantyYears: 5 });
+    const mc4 = await Product.create({ name: "MC4 Connector Pair", category: "other", costPrice: 90, sellPrice: 150, stock: 200, minStock: 50, warrantyYears: 1 });
 
-    // 4. kits: On-Grid, and Off-Grid = same parts + a battery for backup
+    // 4. kits: On-Grid, and Off-Grid = same parts + a battery for backup.
+    // The cable qty is a default; the quote uses the length measured in the site survey.
+    const safetyParts = (connectors) => [
+      { product: cable._id, qty: 20 },
+      { product: box._id, qty: 1 },
+      { product: earthing._id, qty: 1 },
+      { product: mc4._id, qty: connectors },
+    ];
     const kit3 = [
       { product: panel._id, qty: 6 },
       { product: inverter3._id, qty: 1 },
       { product: structure._id, qty: 3 },
+      ...safetyParts(4),
     ];
     const kit5 = [
       { product: panel._id, qty: 10 },
       { product: inverter._id, qty: 1 },
       { product: structure._id, qty: 5 },
+      ...safetyParts(6),
     ];
     const withBattery = (items) => [...items, { product: battery._id, qty: 1 }];
 
+    // kit price = sell price x qty of every part (same rule as the kit API)
+    const allProducts = [panel, inverter, inverter3, battery, structure, cable, box, earthing, mc4];
+    const priceOf = (items) =>
+      items.reduce((sum, i) => sum + allProducts.find((p) => p._id.equals(i.product)).sellPrice * i.qty, 0);
+    const kit = (name, systemType, capacityKw, items) => ({ name, systemType, capacityKw, items, price: priceOf(items) });
+
     await Kit.create([
-      { name: "3 kW On-Grid Kit", systemType: "on_grid", capacityKw: 3, items: kit3, price: 147800 },              // 6×14500 + 44000 + 3×5600
-      { name: "3 kW Off-Grid Kit", systemType: "off_grid", capacityKw: 3, items: withBattery(kit3), price: 292800 }, // + 145000 battery
-      { name: "5 kW On-Grid Kit", systemType: "on_grid", capacityKw: 5, items: kit5, price: 235000 },               // 10×14500 + 62000 + 5×5600
-      { name: "5 kW Off-Grid Kit", systemType: "off_grid", capacityKw: 5, items: withBattery(kit5), price: 380000 }, // + 145000 battery
+      kit("3 kW On-Grid Kit", "on_grid", 3, kit3),
+      kit("3 kW Off-Grid Kit", "off_grid", 3, withBattery(kit3)),
+      kit("5 kW On-Grid Kit", "on_grid", 5, kit5),
+      kit("5 kW Off-Grid Kit", "off_grid", 5, withBattery(kit5)),
     ]);
 
     // 5. customers
@@ -107,7 +129,7 @@ const seed = async () => {
     });
 
     console.log("✅ Seed complete");
-    console.log("Staff logins (password123): admin@ care@ warehouse@ tech@solarflow.in");
+    console.log("Staff logins (password123): admin@ care@ warehouse@ tech@ tech2@solarflow.in");
     console.log("Track order demo: phone 9815488213 + code OR-1001");
     process.exit(0);
   } catch (error) {
